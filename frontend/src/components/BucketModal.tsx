@@ -5,16 +5,23 @@ interface Props {
   serial: number
   slot: string
   onClose: () => void
+  onFlag?: (flags: { lowPct: boolean; zeroPlan: boolean }) => void
+  source?: 'cs' | 'sz'
 }
 
-export default function BucketModal({ serial, slot, onClose }: Props) {
+export default function BucketModal({ serial, slot, onClose, onFlag, source }: Props) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   useEffect(() => {
     ;(async () => {
       try {
-        const { data } = await analysesApi.bucket(serial, slot)
+        const { data } = await analysesApi.bucket(serial, slot, source)
         setData(data)
+        const sumP = source === 'cs' ? data?.cs?.summary?.p : source === 'sz' ? data?.sz?.summary?.p : ((data?.cs?.summary?.p ?? 0) + (data?.sz?.summary?.p ?? 0))
+        const pct = source === 'cs' ? data?.cs?.summary?.pct : source === 'sz' ? data?.sz?.summary?.pct : (data?.cs?.summary?.pct ?? data?.sz?.summary?.pct)
+        const low = typeof pct === 'number' && pct < 0.9
+        const zeroPlan = !sumP || sumP === 0
+        if (onFlag) onFlag({ lowPct: low, zeroPlan })
       } finally {
         setLoading(false)
       }
@@ -29,7 +36,7 @@ export default function BucketModal({ serial, slot, onClose }: Props) {
           <button className="px-3 py-1 border rounded" onClick={onClose}>关闭</button>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          {['cs','sz'].map(k => (
+          {(['cs','sz'] as const).filter(k => !source || source === k).map(k => (
             <div key={k}>
               <div className="mb-2 text-sm text-gray-700">源: {k.toUpperCase()}</div>
               <table className="min-w-full border text-sm">

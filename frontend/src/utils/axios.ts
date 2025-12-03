@@ -11,7 +11,8 @@ export const analysesApi = {
   sync: (params?: Record<string, any>) => api.post('/analyses/sync', null, { params: { ...(params || {}), async: true }, timeout: 10000 }),
   syncStatus: () => api.get('/analyses/sync/status'),
   maxDates: () => api.get('/analyses/max-dates')
-  ,bucket: (serial: number, slot: string) => api.get(`/analyses/${serial}/bucket`, { params: { slot } })
+  ,bucket: (serial: number, slot: string, source?: 'cs'|'sz') => api.get(`/analyses/${serial}/bucket`, { params: { slot, source } })
+  ,pqtyZero: (ids: number[], source: 'cs'|'sz') => api.get('/analyses/pqty-zero', { params: { ids: ids.join(','), source } })
 }
 
 export const itemsApi = {

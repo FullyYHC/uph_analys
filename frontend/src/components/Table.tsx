@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { UphAnalys } from '@/types/api'
 import { useAnalysesStore } from '@/stores/analyses'
 import BucketModal from '@/components/BucketModal'
+import { analysesApi } from '@/utils/axios'
 import { formatDateTime } from '@/utils/format'
 
 interface Props {
@@ -11,9 +12,46 @@ interface Props {
 
 export default function Table({ data }: Props) {
   const nav = useNavigate()
-  const { sort_by, sort_dir, setSort, fetchList, page, size } = useAnalysesStore()
+  const { sort_by, sort_dir, setSort, fetchList, page, size, filters } = useAnalysesStore()
   const [bucket, setBucket] = useState<{ serial: number; slot: string } | null>(null)
+  const [flags, setFlags] = useState<Record<string, { red: boolean; yellow: boolean }>>({})
+  const markFlag = (serial: number, slot: string, f: { lowPct: boolean; zeroPlan: boolean }) => {
+    const key = `${serial}_${slot}`
+    setFlags(prev => ({ ...prev, [key]: { red: !!f.lowPct, yellow: !!f.zeroPlan } }))
+  }
+  const isRed = (serial: number, slot: string, val: number) => {
+    const key = `${serial}_${slot}`
+    return val < 0 || !!flags[key]?.red
+  }
+  const isYellow = (serial: number, slot: string) => {
+    const key = `${serial}_${slot}`
+    return !!flags[key]?.yellow
+  }
   const startIdx = (page - 1) * size
+
+  useEffect(() => {
+    const src = (filters.source as 'cs'|'sz'|undefined)
+    if (!src) return
+    const ids = data.map(d => d.serial_number)
+    if (!ids.length) return
+    ;(async () => {
+      try {
+        const { data: z } = await analysesApi.pqtyZero(ids, src)
+        setFlags(prev => {
+          const next = { ...prev }
+          for (const id of ids) {
+            const slots = z[id] || {}
+            for (const k of Object.keys(slots)) {
+              const key = `${id}_${k}`
+              const old = next[key] || { red: false, yellow: false }
+              next[key] = { red: old.red, yellow: !!slots[k] }
+            }
+          }
+          return next
+        })
+      } catch {}
+    })()
+  }, [data, filters.source])
 
   const renderSort = (col: string, label: string) => (
     <button
@@ -62,18 +100,18 @@ export default function Table({ data }: Props) {
               <td className="px-4 py-2 whitespace-nowrap">{row.lineName ?? ''}</td>
               <td className="px-4 py-2 whitespace-nowrap">{row.lineModel ?? ''}</td>
               <td className="px-4 py-2 whitespace-nowrap">{formatDateTime(row.date_record)}</td>
-              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '8_10' })}>{row.diff_cnt_8_10}</td>
-              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '10_12' })}>{row.diff_cnt_10_12}</td>
-              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '12_14' })}>{row.diff_cnt_12_14}</td>
-              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '14_16' })}>{row.diff_cnt_14_16}</td>
-              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '16_18' })}>{row.diff_cnt_16_18}</td>
-              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '18_20' })}>{row.diff_cnt_18_20}</td>
-              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '20_22' })}>{row.diff_cnt_20_22}</td>
-              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '22_24' })}>{row.diff_cnt_22_24}</td>
-              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '24_2' })}>{row.diff_cnt_24_2}</td>
-              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '2_4' })}>{row.diff_cnt_2_4}</td>
-              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '4_6' })}>{row.diff_cnt_4_6}</td>
-              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '6_8' })}>{row.diff_cnt_6_8}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'8_10')?'bg-yellow-100':''} ${isRed(row.serial_number,'8_10',row.diff_cnt_8_10)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '8_10' })}>{row.diff_cnt_8_10}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'10_12')?'bg-yellow-100':''} ${isRed(row.serial_number,'10_12',row.diff_cnt_10_12)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '10_12' })}>{row.diff_cnt_10_12}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'12_14')?'bg-yellow-100':''} ${isRed(row.serial_number,'12_14',row.diff_cnt_12_14)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '12_14' })}>{row.diff_cnt_12_14}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'14_16')?'bg-yellow-100':''} ${isRed(row.serial_number,'14_16',row.diff_cnt_14_16)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '14_16' })}>{row.diff_cnt_14_16}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'16_18')?'bg-yellow-100':''} ${isRed(row.serial_number,'16_18',row.diff_cnt_16_18)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '16_18' })}>{row.diff_cnt_16_18}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'18_20')?'bg-yellow-100':''} ${isRed(row.serial_number,'18_20',row.diff_cnt_18_20)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '18_20' })}>{row.diff_cnt_18_20}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'20_22')?'bg-yellow-100':''} ${isRed(row.serial_number,'20_22',row.diff_cnt_20_22)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '20_22' })}>{row.diff_cnt_20_22}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'22_24')?'bg-yellow-100':''} ${isRed(row.serial_number,'22_24',row.diff_cnt_22_24)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '22_24' })}>{row.diff_cnt_22_24}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'24_2')?'bg-yellow-100':''} ${isRed(row.serial_number,'24_2',row.diff_cnt_24_2)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '24_2' })}>{row.diff_cnt_24_2}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'2_4')?'bg-yellow-100':''} ${isRed(row.serial_number,'2_4',row.diff_cnt_2_4)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '2_4' })}>{row.diff_cnt_2_4}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'4_6')?'bg-yellow-100':''} ${isRed(row.serial_number,'4_6',row.diff_cnt_4_6)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '4_6' })}>{row.diff_cnt_4_6}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'6_8')?'bg-yellow-100':''} ${isRed(row.serial_number,'6_8',row.diff_cnt_6_8)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '6_8' })}>{row.diff_cnt_6_8}</td>
               <td className="px-4 py-2">
                 <button
                   onClick={() => nav(`/detail/${row.serial_number}`)}
@@ -86,7 +124,7 @@ export default function Table({ data }: Props) {
           ))}
         </tbody>
       </table>
-      {bucket && <BucketModal serial={bucket.serial} slot={bucket.slot} onClose={() => setBucket(null)} />}
+      {bucket && <BucketModal serial={bucket.serial} slot={bucket.slot} source={(filters.source as 'cs'|'sz'|undefined)} onClose={() => setBucket(null)} onFlag={(f)=> markFlag(bucket.serial, bucket.slot, f)} />}
     </div>
   )
 }

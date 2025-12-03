@@ -4,7 +4,7 @@ import { listAnalyses, getDetailBySerialNumber } from '../services/analysesServi
 import { syncFromMaclib } from '../services/syncService'
 import { csPool, szPool, pmPool } from '../db'
 import { startSyncJob, getSyncJobStatus, cancelSyncJob } from '../services/syncJob'
-import { getBucketBySlot } from '../services/bucketService'
+import { getBucketBySlot, getPqtyZero } from '../services/bucketService'
 
 const listSchema = z.object({
   date_from: z.string().optional(),
@@ -96,7 +96,21 @@ export async function getBucketDetails(req: Request, res: Response, next: NextFu
   try {
     const serial = Number(req.params.serial_number)
     const slot = String(req.query.slot || '')
-    const data = await getBucketBySlot(serial, slot)
+    const sourceParam = String(req.query.source || '')
+    const src = sourceParam === 'cs' || sourceParam === 'sz' ? (sourceParam as 'cs'|'sz') : undefined
+    const data = await getBucketBySlot(serial, slot, src)
+    res.json(data)
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getPqtyZeroFlags(req: Request, res: Response, next: NextFunction) {
+  try {
+    const ids = String(req.query.ids || '')
+    const list = ids.split(',').map(s => Number(s)).filter(n => Number.isFinite(n) && n > 0)
+    const source = String(req.query.source || '') === 'cs' ? 'cs' : 'sz'
+    const data = await getPqtyZero(list, source)
     res.json(data)
   } catch (err) {
     next(err)

@@ -3,6 +3,7 @@ export interface UphAnalys {
   model_type: string
   lineName?: string
   lineModel?: string
+  data_source?: string
   date_record: string
   diff_cnt_8_10: number
   diff_cnt_10_12: number

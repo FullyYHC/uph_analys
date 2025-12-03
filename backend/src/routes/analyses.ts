@@ -20,6 +20,14 @@ router.get('/sync/status', async (req, res, next) => {
     next(e)
   }
 })
+router.get('/pqty-zero', async (req, res, next) => {
+  try {
+    const { getPqtyZeroFlags } = await import('../controllers/analysesController')
+    return getPqtyZeroFlags(req, res, next)
+  } catch (e) {
+    next(e)
+  }
+})
 router.post('/sync/stop', async (req, res, next) => {
   try {
     const { stopSync } = await import('../controllers/analysesController')

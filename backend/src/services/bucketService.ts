@@ -26,8 +26,36 @@ async function fetchSource(pool: any, pid: number, slot: string) {
   return { items, summary }
 }
 
-export async function getBucketBySlot(serial: number, slot: string) {
+export async function getBucketBySlot(serial: number, slot: string, source?: 'cs' | 'sz') {
+  if (source === 'cs') {
+    const cs = await fetchSource(csPool, serial, slot)
+    return { slot, cs, sz: null }
+  }
+  if (source === 'sz') {
+    const sz = await fetchSource(szPool, serial, slot)
+    return { slot, cs: null, sz }
+  }
   const cs = await fetchSource(csPool, serial, slot)
   const sz = await fetchSource(szPool, serial, slot)
   return { slot, cs, sz }
+}
+
+export async function getPqtyZero(serials: number[], source: 'cs' | 'sz') {
+  const pool = source === 'cs' ? csPool : szPool
+  const pairs: [number, number][] = [[1,2],[3,4],[5,6],[7,8],[9,10],[11,12],[13,14],[15,16],[17,18],[19,20],[21,22],[23,24]]
+  const result: Record<number, Record<string, boolean>> = {}
+  for (const pid of serials) {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT ID, PQty FROM maclib.mes_hqty2 WHERE PID = ? ORDER BY ID ASC', [pid])
+    const map: Record<number, number> = {}
+    for (const r of rows as any[]) { map[r.ID] = r.PQty || 0 }
+    const flags: Record<string, boolean> = {}
+    const names = ['8_10','10_12','12_14','14_16','16_18','18_20','20_22','22_24','24_2','2_4','4_6','6_8']
+    for (let i = 0; i < pairs.length; i++) {
+      const [a,b] = pairs[i]
+      const sum = (map[a] || 0) + (map[b] || 0)
+      flags[names[i]] = sum === 0
+    }
+    result[pid] = flags
+  }
+  return result
 }
