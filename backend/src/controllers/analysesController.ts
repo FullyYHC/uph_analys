@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { listAnalyses, getDetailBySerialNumber } from '../services/analysesService'
 import { syncFromMaclib } from '../services/syncService'
 import { csPool, szPool, pmPool } from '../db'
-import { startSyncJob, getSyncJobStatus } from '../services/syncJob'
+import { startSyncJob, getSyncJobStatus, cancelSyncJob } from '../services/syncJob'
 
 const listSchema = z.object({
   date_from: z.string().optional(),
@@ -82,4 +82,8 @@ export async function getMaxDates(_req: Request, res: Response, next: NextFuncti
 
 export async function getSyncStatus(_req: Request, res: Response) {
   res.json(getSyncJobStatus())
+}
+
+export async function stopSync(_req: Request, res: Response) {
+  res.json(cancelSyncJob())
 }

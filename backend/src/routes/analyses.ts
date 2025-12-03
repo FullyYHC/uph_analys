@@ -20,6 +20,14 @@ router.get('/sync/status', async (req, res, next) => {
     next(e)
   }
 })
+router.post('/sync/stop', async (req, res, next) => {
+  try {
+    const { stopSync } = await import('../controllers/analysesController')
+    return stopSync(req, res)
+  } catch (e) {
+    next(e)
+  }
+})
 router.get('/:serial_number', getAnalysisDetail)
 router.post('/sync', runSync)
 

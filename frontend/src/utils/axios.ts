@@ -9,7 +9,8 @@ export const analysesApi = {
   list: (params?: Record<string, any>) => api.get<AnalysesListRes>('/analyses', { params }),
   detail: (serial: number) => api.get<AnalysesDetailRes>(`/analyses/${serial}`),
   sync: (params?: Record<string, any>) => api.post('/analyses/sync', null, { params: { ...(params || {}), async: true }, timeout: 10000 }),
-  syncStatus: () => api.get('/analyses/sync/status')
+  syncStatus: () => api.get('/analyses/sync/status'),
+  maxDates: () => api.get('/analyses/max-dates')
 }
 
 export const itemsApi = {

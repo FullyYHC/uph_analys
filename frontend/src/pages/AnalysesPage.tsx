@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAnalysesStore } from '@/stores/analyses'
+import { analysesApi } from '@/utils/axios'
 import SearchForm from '@/components/SearchForm'
 import Table from '@/components/Table'
 import Pagination from '@/components/Pagination'
@@ -27,7 +28,23 @@ export default function AnalysesPage() {
         <button
           onClick={async () => {
             try {
-              const { data } = await analysesApi.sync()
+              // 先诊断是否需要同步：比较 cs/sz 与 pm 的最新时间
+              const { data: max } = await analysesApi.maxDates()
+              const target = [max?.cs, max?.sz].filter(Boolean).sort().pop()
+              const current = max?.pm
+              if (!target) {
+                setTip({ text: '暂无可同步数据', ok: true })
+                return
+              }
+              // 若已最新则直接刷新
+              if (current && String(current) >= String(target)) {
+                await fetchList()
+                setTip({ text: '已是最新数据，无需同步', ok: true })
+                return
+              }
+              const df = current ? String(current).slice(0, 10) : String(target).slice(0, 10)
+              const dt = String(target).slice(0, 10)
+              const { data } = await analysesApi.sync({ date_from: df, date_to: dt, async: true })
               if (!data?.ok && data?.reason === 'busy') {
                 setTip({ text: '正在同步…', ok: true })
                 setSyncing(true)
@@ -46,7 +63,7 @@ export default function AnalysesPage() {
                     setSyncing(false)
                     await fetchList()
                   } else if (st?.status === 'failed') {
-                    setTip({ text: '同步失败！', ok: false })
+                    setTip({ text: `同步失败！${st?.error ? '(' + st.error + ')' : ''}` , ok: false })
                     setSyncing(false)
                   } else if (Date.now() - start < 180000) {
                     setTimeout(poll, 2000)
@@ -54,13 +71,15 @@ export default function AnalysesPage() {
                     setTip({ text: '同步超时！', ok: false })
                     setSyncing(false)
                   }
-                } catch {
+                } catch (err: any) {
+                  // 网络异常重试
                   setTimeout(poll, 3000)
                 }
               }
               setTimeout(poll, 1500)
-            } catch (e) {
-              setTip({ text: '同步失败！', ok: false })
+            } catch (e: any) {
+              const msg = e?.response?.data?.error || e?.message || '未知错误'
+              setTip({ text: `同步失败！(${msg})`, ok: false })
               setSyncing(false)
             }
           }}
