@@ -1,5 +1,6 @@
 import { UphAnalys, UphItem } from '../models/types'
 import { pmPool } from '../db'
+import { getPqtyZero } from './bucketService'
 
 type ListParams = {
   date_from?: string
@@ -63,9 +64,33 @@ export async function listAnalyses(params: ListParams) {
   const sortCol = params.sort_by ?? 'date_record'
   const sortDir = params.sort_dir ?? 'desc'
   const [rows] = await pmPool.query(`SELECT * FROM uph_analys ${whereSql} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`, [...values, size, offset])
+  const items = (rows as any[]) as UphAnalys[]
+  try {
+    const ids = items.map(it => it.serial_number)
+    if (ids.length) {
+      const src = params.source === 'cs' || params.source === 'sz' ? params.source : undefined
+      if (src) {
+        const z = await getPqtyZero(ids, src as any)
+        for (const it of items) {
+          ;(it as any).pqtyZero = z[it.serial_number] || {}
+        }
+      } else {
+        const zCs = await getPqtyZero(ids, 'cs' as any)
+        const zSz = await getPqtyZero(ids, 'sz' as any)
+        for (const it of items) {
+          const a = zCs[it.serial_number] || {}
+          const b = zSz[it.serial_number] || {}
+          const keys = Array.from(new Set([...Object.keys(a), ...Object.keys(b)]))
+          const combined: Record<string, boolean> = {}
+          for (const k of keys) combined[k] = !!(a[k] && b[k])
+          ;(it as any).pqtyZero = combined
+        }
+      }
+    }
+  } catch {}
   const [countRows] = await pmPool.query(`SELECT COUNT(1) as cnt FROM uph_analys ${whereSql}`, values)
   const total = (countRows as any[])[0]?.cnt ?? 0
-  return { items: rows as UphAnalys[], page, size, total }
+  return { items, page, size, total }
 }
 
 export async function getDetailBySerialNumber(serial: number) {

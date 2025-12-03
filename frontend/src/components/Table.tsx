@@ -23,24 +23,36 @@ export default function Table({ data }: Props) {
     const key = `${serial}_${slot}`
     return val < 0 || !!flags[key]?.red
   }
-  const isYellow = (serial: number, slot: string) => {
+  const isYellow = (serial: number, slot: string, row?: UphAnalys) => {
     const key = `${serial}_${slot}`
-    return !!flags[key]?.yellow
+    const fromState = !!flags[key]?.yellow
+    const fromRow = row?.pqtyZero ? !!row.pqtyZero[slot] : false
+    return fromState || fromRow
   }
   const startIdx = (page - 1) * size
 
   useEffect(() => {
-    const src = (filters.source as 'cs'|'sz'|undefined)
-    if (!src) return
+    const srcVal = (filters.source as 'cs'|'sz'|undefined)
     const ids = data.map(d => d.serial_number)
     if (!ids.length) return
     ;(async () => {
       try {
-        const { data: z } = await analysesApi.pqtyZero(ids, src)
+        const sources = srcVal ? [srcVal] : ['cs','sz']
+        let combined: Record<number, Record<string, boolean>> = {}
+        for (const s of sources) {
+          const { data: z } = await analysesApi.pqtyZero(ids, s as 'cs'|'sz')
+          combined = Object.keys(z).reduce((acc, idStr) => {
+            const id = Number(idStr)
+            acc[id] = acc[id] || {}
+            const slots = z[id] || {}
+            for (const k of Object.keys(slots)) acc[id][k] = acc[id][k] === undefined ? !!slots[k] : (!!acc[id][k] && !!slots[k])
+            return acc
+          }, combined)
+        }
         setFlags(prev => {
           const next = { ...prev }
           for (const id of ids) {
-            const slots = z[id] || {}
+            const slots = combined[id] || {}
             for (const k of Object.keys(slots)) {
               const key = `${id}_${k}`
               const old = next[key] || { red: false, yellow: false }
@@ -100,18 +112,18 @@ export default function Table({ data }: Props) {
               <td className="px-4 py-2 whitespace-nowrap">{row.lineName ?? ''}</td>
               <td className="px-4 py-2 whitespace-nowrap">{row.lineModel ?? ''}</td>
               <td className="px-4 py-2 whitespace-nowrap">{formatDateTime(row.date_record)}</td>
-              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'8_10')?'bg-yellow-100':''} ${isRed(row.serial_number,'8_10',row.diff_cnt_8_10)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '8_10' })}>{row.diff_cnt_8_10}</td>
-              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'10_12')?'bg-yellow-100':''} ${isRed(row.serial_number,'10_12',row.diff_cnt_10_12)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '10_12' })}>{row.diff_cnt_10_12}</td>
-              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'12_14')?'bg-yellow-100':''} ${isRed(row.serial_number,'12_14',row.diff_cnt_12_14)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '12_14' })}>{row.diff_cnt_12_14}</td>
-              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'14_16')?'bg-yellow-100':''} ${isRed(row.serial_number,'14_16',row.diff_cnt_14_16)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '14_16' })}>{row.diff_cnt_14_16}</td>
-              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'16_18')?'bg-yellow-100':''} ${isRed(row.serial_number,'16_18',row.diff_cnt_16_18)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '16_18' })}>{row.diff_cnt_16_18}</td>
-              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'18_20')?'bg-yellow-100':''} ${isRed(row.serial_number,'18_20',row.diff_cnt_18_20)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '18_20' })}>{row.diff_cnt_18_20}</td>
-              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'20_22')?'bg-yellow-100':''} ${isRed(row.serial_number,'20_22',row.diff_cnt_20_22)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '20_22' })}>{row.diff_cnt_20_22}</td>
-              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'22_24')?'bg-yellow-100':''} ${isRed(row.serial_number,'22_24',row.diff_cnt_22_24)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '22_24' })}>{row.diff_cnt_22_24}</td>
-              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'24_2')?'bg-yellow-100':''} ${isRed(row.serial_number,'24_2',row.diff_cnt_24_2)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '24_2' })}>{row.diff_cnt_24_2}</td>
-              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'2_4')?'bg-yellow-100':''} ${isRed(row.serial_number,'2_4',row.diff_cnt_2_4)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '2_4' })}>{row.diff_cnt_2_4}</td>
-              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'4_6')?'bg-yellow-100':''} ${isRed(row.serial_number,'4_6',row.diff_cnt_4_6)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '4_6' })}>{row.diff_cnt_4_6}</td>
-              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'6_8')?'bg-yellow-100':''} ${isRed(row.serial_number,'6_8',row.diff_cnt_6_8)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '6_8' })}>{row.diff_cnt_6_8}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'8_10',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'8_10',row.diff_cnt_8_10)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '8_10' })}>{row.diff_cnt_8_10}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'10_12',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'10_12',row.diff_cnt_10_12)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '10_12' })}>{row.diff_cnt_10_12}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'12_14',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'12_14',row.diff_cnt_12_14)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '12_14' })}>{row.diff_cnt_12_14}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'14_16',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'14_16',row.diff_cnt_14_16)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '14_16' })}>{row.diff_cnt_14_16}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'16_18',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'16_18',row.diff_cnt_16_18)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '16_18' })}>{row.diff_cnt_16_18}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'18_20',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'18_20',row.diff_cnt_18_20)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '18_20' })}>{row.diff_cnt_18_20}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'20_22',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'20_22',row.diff_cnt_20_22)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '20_22' })}>{row.diff_cnt_20_22}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'22_24',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'22_24',row.diff_cnt_22_24)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '22_24' })}>{row.diff_cnt_22_24}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'24_2',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'24_2',row.diff_cnt_24_2)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '24_2' })}>{row.diff_cnt_24_2}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'2_4',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'2_4',row.diff_cnt_2_4)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '2_4' })}>{row.diff_cnt_2_4}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'4_6',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'4_6',row.diff_cnt_4_6)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '4_6' })}>{row.diff_cnt_4_6}</td>
+              <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'6_8',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'6_8',row.diff_cnt_6_8)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '6_8' })}>{row.diff_cnt_6_8}</td>
               <td className="px-4 py-2">
                 <button
                   onClick={() => nav(`/detail/${row.serial_number}`)}

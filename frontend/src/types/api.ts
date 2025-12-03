@@ -17,6 +17,7 @@ export interface UphAnalys {
   diff_cnt_2_4: number
   diff_cnt_4_6: number
   diff_cnt_6_8: number
+  pqtyZero?: Record<string, boolean>
 }
 
 export interface UphItem {
