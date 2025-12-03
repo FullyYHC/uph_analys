@@ -1,0 +1,22 @@
+# Node
+node_modules/
+dist/
+build/
+coverage/
+
+# IDE
+.vscode/
+.idea/
+*.log
+
+# Env & secrets
+.env
+backend/.env
+frontend/.env
+
+# Misc
+.DS_Store
+Thumbs.db
+pnpm-lock.yaml
+yarn.lock
+package-lock.json

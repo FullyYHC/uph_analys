@@ -1,0 +1,26 @@
+import { Router } from 'express'
+import { getAnalyses, getAnalysisDetail, runSync } from '../controllers/analysesController'
+
+const router = Router()
+
+router.get('/', getAnalyses)
+router.get('/max-dates', async (req, res, next) => {
+  try {
+    const { getMaxDates } = await import('../controllers/analysesController')
+    return getMaxDates(req, res, next)
+  } catch (e) {
+    next(e)
+  }
+})
+router.get('/sync/status', async (req, res, next) => {
+  try {
+    const { getSyncStatus } = await import('../controllers/analysesController')
+    return getSyncStatus(req, res)
+  } catch (e) {
+    next(e)
+  }
+})
+router.get('/:serial_number', getAnalysisDetail)
+router.post('/sync', runSync)
+
+export default router
