@@ -7,7 +7,7 @@ import Table from '@/components/Table'
 import Pagination from '@/components/Pagination'
 
 export default function AnalysesPage() {
-  const { list, page, size, total, loading, error, fetchList, setPage, setSize, setFilters } = useAnalysesStore()
+  const { list, page, size, total, loading, error, fetchList, setPage, setSize, setFilters, filters } = useAnalysesStore()
   const [tip, setTip] = useState<{ text: string; ok: boolean } | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [source, setSource] = useState<'all' | 'sz' | 'hn'>('all')
@@ -108,7 +108,7 @@ export default function AnalysesPage() {
       {tip && (
         <div className={`mb-3 px-3 py-2 rounded ${tip.ok ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{tip.text}</div>
       )}
-      <SearchForm onSearch={handleSearch} />
+      <SearchForm onSearch={handleSearch} initialFrom={filters.date_from} initialTo={filters.date_to} />
       {loading ? (
         <div className="text-gray-500">加载中…</div>
       ) : (

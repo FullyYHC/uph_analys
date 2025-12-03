@@ -36,7 +36,20 @@ export const useAnalysesStore = create<State & Actions>((set, get) => ({
   error: null,
   sort_by: 'date_record',
   sort_dir: 'desc',
-  filters: {},
+  filters: (() => {
+    const now = new Date()
+    const from = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    const fmt = (d: Date) => {
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      const hh = String(d.getHours()).padStart(2, '0')
+      const mm = String(d.getMinutes()).padStart(2, '0')
+      const ss = String(d.getSeconds()).padStart(2, '0')
+      return `${y}-${m}-${day} ${hh}:${mm}:${ss}`
+    }
+    return { date_from: fmt(from), date_to: fmt(now) }
+  })(),
   fetchList: async (params) => {
     set({ loading: true, error: null })
     try {

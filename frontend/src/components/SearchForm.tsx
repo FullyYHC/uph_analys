@@ -2,9 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 
 interface Props {
   onSearch: (params: Record<string, any>) => void
+  initialFrom?: string
+  initialTo?: string
 }
 
-export default function SearchForm({ onSearch }: Props) {
+function toInputVal(s?: string) {
+  if (!s) return ''
+  const t = s.replace(' ', 'T')
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(t) ? t : ''
+}
+
+export default function SearchForm({ onSearch, initialFrom, initialTo }: Props) {
   const [model, setModel] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -25,6 +33,15 @@ export default function SearchForm({ onSearch }: Props) {
       if (timer.current) window.clearTimeout(timer.current)
     }
   }, [model, dateFrom, dateTo])
+
+  // 初始化输入框为父组件提供的默认值
+  useEffect(() => {
+    if (initialFrom || initialTo) {
+      setDateFrom((prev) => prev || toInputVal(initialFrom))
+      setDateTo((prev) => prev || toInputVal(initialTo))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
