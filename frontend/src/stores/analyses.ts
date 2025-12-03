@@ -16,6 +16,8 @@ interface State {
     date_from?: string
     date_to?: string
     source?: string
+    line_prefix?: string
+    line_group?: string
   }
 }
 
@@ -24,7 +26,7 @@ interface Actions {
   setPage: (p: number) => void
   setSort: (col: string) => void
   setSize: (s: number) => void
-  setFilters: (f: Partial<{ model?: string; date_from?: string; date_to?: string; source?: string }>) => void
+  setFilters: (f: Partial<{ model?: string; date_from?: string; date_to?: string; source?: string; line_prefix?: string; line_group?: string }>) => void
 }
 
 export const useAnalysesStore = create<State & Actions>((set, get) => ({

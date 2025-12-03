@@ -9,7 +9,8 @@ interface Props {
 
 export default function Table({ data }: Props) {
   const nav = useNavigate()
-  const { sort_by, sort_dir, setSort, fetchList } = useAnalysesStore()
+  const { sort_by, sort_dir, setSort, fetchList, page, size } = useAnalysesStore()
+  const startIdx = (page - 1) * size
 
   const renderSort = (col: string, label: string) => (
     <button
@@ -28,7 +29,8 @@ export default function Table({ data }: Props) {
       <table className="min-w-full bg-white border whitespace-nowrap">
         <thead>
           <tr className="bg-gray-100">
-            <th className="whitespace-nowrap">{renderSort('serial_number', '序号')}</th>
+            <th className="px-4 py-2 text-left whitespace-nowrap">序号</th>
+            <th className="whitespace-nowrap">{renderSort('serial_number', 'PlanID')}</th>
             <th className="whitespace-nowrap">{renderSort('model_type', '机型')}</th>
             <th className="whitespace-nowrap">{renderSort('lineName', '线别')}</th>
             <th className="whitespace-nowrap">{renderSort('lineModel', '设备类型')}</th>
@@ -49,8 +51,9 @@ export default function Table({ data }: Props) {
           </tr>
         </thead>
         <tbody>
-          {data.map((row) => (
+          {data.map((row, i) => (
             <tr key={row.serial_number} className="hover:bg-gray-50">
+              <td className="px-4 py-2 whitespace-nowrap">{startIdx + i + 1}</td>
               <td className="px-4 py-2 whitespace-nowrap">{row.serial_number}</td>
               <td className="px-4 py-2 whitespace-nowrap">{row.model_type}</td>
               <td className="px-4 py-2 whitespace-nowrap">{row.lineName ?? ''}</td>

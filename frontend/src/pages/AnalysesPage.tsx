@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAnalysesStore } from '@/stores/analyses'
 import { analysesApi } from '@/utils/axios'
 import SourceToggle from '@/components/SourceToggle'
+import LinePrefixToggle from '@/components/LinePrefixToggle'
 import SearchForm from '@/components/SearchForm'
 import Table from '@/components/Table'
 import Pagination from '@/components/Pagination'
@@ -11,6 +12,7 @@ export default function AnalysesPage() {
   const [tip, setTip] = useState<{ text: string; ok: boolean } | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [source, setSource] = useState<'all' | 'sz' | 'hn'>('all')
+  const [linePref, setLinePref] = useState<'ALL'|'A'|'B'|'C'|'D'|'E'|'F'|'O'>('ALL')
 
   useEffect(() => {
     fetchList()
@@ -34,6 +36,18 @@ export default function AnalysesPage() {
             setSource(v)
             const srcParam = v === 'all' ? undefined : (v === 'sz' ? 'sz' : 'cs')
             setFilters({ source: srcParam })
+            setPage(1)
+            fetchList()
+          }} />
+          <LinePrefixToggle value={linePref} onChange={(v) => {
+            setLinePref(v)
+            if (v === 'ALL') {
+              setFilters({ line_prefix: undefined, line_group: undefined })
+            } else if (v === 'O') {
+              setFilters({ line_prefix: undefined, line_group: 'O' })
+            } else {
+              setFilters({ line_prefix: v, line_group: undefined })
+            }
             setPage(1)
             fetchList()
           }} />

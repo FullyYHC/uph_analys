@@ -6,6 +6,8 @@ type ListParams = {
   date_to?: string
   model?: string
   source?: string
+  line_prefix?: string
+  line_group?: string
   line_leader_item?: string
   line_name?: string
   pie_item?: string
@@ -55,6 +57,8 @@ export async function listAnalyses(params: ListParams) {
   if (toVal) { where.push('date_record <= ?'); values.push(toVal) }
   if (params.model) { where.push('model_type LIKE ?'); values.push(`%${params.model}%`) }
   if (params.source && params.source !== 'all') { where.push('data_source = ?'); values.push(params.source) }
+  if (params.line_prefix && /^[A-Fa-f]$/.test(params.line_prefix)) { where.push('lineName LIKE ?'); values.push(`${params.line_prefix.toUpperCase()}%`) }
+  if (params.line_group === 'O') { where.push('(lineName IS NULL OR (lineName NOT LIKE ? AND lineName NOT LIKE ? AND lineName NOT LIKE ? AND lineName NOT LIKE ? AND lineName NOT LIKE ? AND lineName NOT LIKE ?))'); values.push('A%','B%','C%','D%','E%','F%') }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
   const sortCol = params.sort_by ?? 'date_record'
   const sortDir = params.sort_dir ?? 'desc'
