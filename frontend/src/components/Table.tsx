@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { UphAnalys } from '@/types/api'
 import { useAnalysesStore } from '@/stores/analyses'
+import BucketModal from '@/components/BucketModal'
 import { formatDateTime } from '@/utils/format'
 
 interface Props {
@@ -10,6 +12,7 @@ interface Props {
 export default function Table({ data }: Props) {
   const nav = useNavigate()
   const { sort_by, sort_dir, setSort, fetchList, page, size } = useAnalysesStore()
+  const [bucket, setBucket] = useState<{ serial: number; slot: string } | null>(null)
   const startIdx = (page - 1) * size
 
   const renderSort = (col: string, label: string) => (
@@ -59,7 +62,7 @@ export default function Table({ data }: Props) {
               <td className="px-4 py-2 whitespace-nowrap">{row.lineName ?? ''}</td>
               <td className="px-4 py-2 whitespace-nowrap">{row.lineModel ?? ''}</td>
               <td className="px-4 py-2 whitespace-nowrap">{formatDateTime(row.date_record)}</td>
-              <td className="px-4 py-2">{row.diff_cnt_8_10}</td>
+              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '8_10' })}>{row.diff_cnt_8_10}</td>
               <td className="px-4 py-2">{row.diff_cnt_10_12}</td>
               <td className="px-4 py-2">{row.diff_cnt_12_14}</td>
               <td className="px-4 py-2">{row.diff_cnt_14_16}</td>
@@ -83,6 +86,7 @@ export default function Table({ data }: Props) {
           ))}
         </tbody>
       </table>
+      {bucket && <BucketModal serial={bucket.serial} slot={bucket.slot} onClose={() => setBucket(null)} />}
     </div>
   )
 }

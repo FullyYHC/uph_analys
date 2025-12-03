@@ -30,5 +30,13 @@ router.post('/sync/stop', async (req, res, next) => {
 })
 router.get('/:serial_number', getAnalysisDetail)
 router.post('/sync', runSync)
+router.get('/:serial_number/bucket', async (req, res, next) => {
+  try {
+    const { getBucketDetails } = await import('../controllers/analysesController')
+    return getBucketDetails(req, res, next)
+  } catch (e) {
+    next(e)
+  }
+})
 
 export default router

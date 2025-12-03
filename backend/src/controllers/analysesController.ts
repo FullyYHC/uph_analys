@@ -4,6 +4,7 @@ import { listAnalyses, getDetailBySerialNumber } from '../services/analysesServi
 import { syncFromMaclib } from '../services/syncService'
 import { csPool, szPool, pmPool } from '../db'
 import { startSyncJob, getSyncJobStatus, cancelSyncJob } from '../services/syncJob'
+import { getBucketBySlot } from '../services/bucketService'
 
 const listSchema = z.object({
   date_from: z.string().optional(),
@@ -89,4 +90,15 @@ export async function getSyncStatus(_req: Request, res: Response) {
 
 export async function stopSync(_req: Request, res: Response) {
   res.json(cancelSyncJob())
+}
+
+export async function getBucketDetails(req: Request, res: Response, next: NextFunction) {
+  try {
+    const serial = Number(req.params.serial_number)
+    const slot = String(req.query.slot || '')
+    const data = await getBucketBySlot(serial, slot)
+    res.json(data)
+  } catch (err) {
+    next(err)
+  }
 }

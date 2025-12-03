@@ -11,6 +11,7 @@ export const analysesApi = {
   sync: (params?: Record<string, any>) => api.post('/analyses/sync', null, { params: { ...(params || {}), async: true }, timeout: 10000 }),
   syncStatus: () => api.get('/analyses/sync/status'),
   maxDates: () => api.get('/analyses/max-dates')
+  ,bucket: (serial: number, slot: string) => api.get(`/analyses/${serial}/bucket`, { params: { slot } })
 }
 
 export const itemsApi = {
