@@ -11,6 +11,12 @@ interface State {
   error: string | null
   sort_by: string
   sort_dir: 'asc' | 'desc'
+  filters: {
+    model?: string
+    date_from?: string
+    date_to?: string
+    source?: string
+  }
 }
 
 interface Actions {
@@ -18,6 +24,7 @@ interface Actions {
   setPage: (p: number) => void
   setSort: (col: string) => void
   setSize: (s: number) => void
+  setFilters: (f: Partial<{ model?: string; date_from?: string; date_to?: string; source?: string }>) => void
 }
 
 export const useAnalysesStore = create<State & Actions>((set, get) => ({
@@ -27,18 +34,21 @@ export const useAnalysesStore = create<State & Actions>((set, get) => ({
   total: 0,
   loading: false,
   error: null,
-  sort_by: 'serial_number',
-  sort_dir: 'asc',
+  sort_by: 'date_record',
+  sort_dir: 'desc',
+  filters: {},
   fetchList: async (params) => {
     set({ loading: true, error: null })
     try {
-      const { data } = await analysesApi.list({
+      const q = {
         page: get().page,
         size: get().size,
         sort_by: get().sort_by,
         sort_dir: get().sort_dir,
-        ...params
-      })
+        ...get().filters,
+        ...(params || {})
+      }
+      const { data } = await analysesApi.list(q)
       set({ list: data.items, total: data.total, loading: false })
     } catch (e: any) {
       set({ error: e.message, loading: false })
@@ -53,5 +63,6 @@ export const useAnalysesStore = create<State & Actions>((set, get) => ({
       set({ sort_by: col, sort_dir: 'asc' })
     }
   },
-  setSize: (s) => set({ size: s, page: 1 })
+  setSize: (s) => set({ size: s, page: 1 }),
+  setFilters: (f) => set({ filters: { ...get().filters, ...f }, page: 1 })
 }))

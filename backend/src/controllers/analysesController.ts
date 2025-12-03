@@ -9,6 +9,7 @@ const listSchema = z.object({
   date_from: z.string().optional(),
   date_to: z.string().optional(),
   model: z.string().optional(),
+  source: z.string().optional(),
   line_leader_item: z.string().optional(),
   line_name: z.string().optional(),
   pie_item: z.string().optional(),

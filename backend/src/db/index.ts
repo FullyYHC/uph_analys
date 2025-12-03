@@ -40,5 +40,27 @@ export async function ensureSchema() {
     if (dtype && dtype.toLowerCase() === 'date') {
       await pmPool.query("ALTER TABLE uph_analys MODIFY COLUMN date_record DATETIME NOT NULL")
     }
+    // add data_source column if missing
+    const [srcCol] = await pmPool.query<mysql.RowDataPacket[]>(
+      "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'uph_analys' AND COLUMN_NAME = 'data_source'",
+      [process.env.PM_DATABASE]
+    )
+    if (!srcCol || (srcCol as any[]).length === 0) {
+      await pmPool.query("ALTER TABLE uph_analys ADD COLUMN data_source VARCHAR(8) NOT NULL DEFAULT 'unknown' AFTER model_type")
+    }
+    const [idxRows] = await pmPool.query<mysql.RowDataPacket[]>(
+      "SELECT INDEX_NAME, NON_UNIQUE FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'uph_analys'",
+      [process.env.PM_DATABASE]
+    )
+    const hasSrcUnique = (idxRows as any[]).some(r => r.INDEX_NAME === 'idx_model_date_src')
+    const hasOldUnique = (idxRows as any[]).some(r => r.INDEX_NAME === 'idx_model_date')
+    if (!hasSrcUnique) {
+      if (hasOldUnique) {
+        try { await pmPool.query("DROP INDEX idx_model_date ON uph_analys") } catch {}
+      }
+      try {
+        await pmPool.query("CREATE UNIQUE INDEX idx_model_date_src ON uph_analys (model_type, date_record, data_source)")
+      } catch {}
+    }
   } catch {}
 }

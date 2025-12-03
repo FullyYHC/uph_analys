@@ -1,22 +1,26 @@
 import { useEffect, useState } from 'react'
 import { useAnalysesStore } from '@/stores/analyses'
 import { analysesApi } from '@/utils/axios'
+import SourceToggle from '@/components/SourceToggle'
 import SearchForm from '@/components/SearchForm'
 import Table from '@/components/Table'
 import Pagination from '@/components/Pagination'
 
 export default function AnalysesPage() {
-  const { list, page, size, total, loading, error, fetchList, setPage, setSize } = useAnalysesStore()
+  const { list, page, size, total, loading, error, fetchList, setPage, setSize, setFilters } = useAnalysesStore()
   const [tip, setTip] = useState<{ text: string; ok: boolean } | null>(null)
   const [syncing, setSyncing] = useState(false)
+  const [source, setSource] = useState<'all' | 'sz' | 'hn'>('all')
 
   useEffect(() => {
     fetchList()
   }, [page])
 
   const handleSearch = (params: Record<string, any>) => {
+    const srcParam = source === 'all' ? undefined : (source === 'sz' ? 'sz' : 'cs')
+    setFilters({ ...params, source: srcParam })
     setPage(1)
-    fetchList(params)
+    fetchList()
   }
 
   if (error) return <div className="text-red-600">{error}</div>
@@ -24,13 +28,24 @@ export default function AnalysesPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">UPH 达成列表</h2>
+        <div className="flex items-center gap-6">
+          <h2 className="text-lg font-semibold">UPH 达成列表</h2>
+          <SourceToggle value={source} onChange={(v) => {
+            setSource(v)
+            const srcParam = v === 'all' ? undefined : (v === 'sz' ? 'sz' : 'cs')
+            setFilters({ source: srcParam })
+            setPage(1)
+            fetchList()
+          }} />
+        </div>
         <button
           onClick={async () => {
             try {
               // 先诊断是否需要同步：比较 cs/sz 与 pm 的最新时间
               const { data: max } = await analysesApi.maxDates()
-              const target = [max?.cs, max?.sz].filter(Boolean).sort().pop()
+              const target = source === 'all'
+                ? [max?.cs, max?.sz].filter(Boolean).sort().pop()
+                : (source === 'sz' ? max?.sz : max?.cs)
               const current = max?.pm
               if (!target) {
                 setTip({ text: '暂无可同步数据', ok: true })
@@ -44,7 +59,8 @@ export default function AnalysesPage() {
               }
               const df = current ? String(current).slice(0, 10) : String(target).slice(0, 10)
               const dt = String(target).slice(0, 10)
-              const { data } = await analysesApi.sync({ date_from: df, date_to: dt, async: true })
+              const srcParam = source === 'all' ? 'cs,sz' : (source === 'sz' ? 'sz' : 'cs')
+              const { data } = await analysesApi.sync({ date_from: df, date_to: dt, async: true, sources: srcParam })
               if (!data?.ok && data?.reason === 'busy') {
                 setTip({ text: '正在同步…', ok: true })
                 setSyncing(true)
