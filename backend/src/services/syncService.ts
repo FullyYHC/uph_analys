@@ -30,7 +30,7 @@ function bucketPairs() {
   ]
 }
 
-type PlanRow = { ID: number; Model: string; Qty: number; FUpdateDate: string }
+type PlanRow = { ID: number; Model: string; Qty: number; FUpdateDate: string; LineID?: number }
 type QtyRow = { ID: number; PID: number; PQty: number; MQty: number | null; AQty: number | null }
 
 function computeDiff(twoHours: QtyRow[]) {
@@ -81,17 +81,30 @@ export async function syncFromMaclib(opts: SyncOptions = {}) {
   const toStr = normalizeTo(toDateString(to))
   for (const { tag, pool: src } of sources) {
     insertedBy[tag] = 0
-    const [plansRows] = await src.query('SELECT ID, Model, Qty, FUpdateDate FROM maclib.mes_plan WHERE FUpdateDate > ? AND FUpdateDate <= ? ORDER BY FUpdateDate ASC', [fromStr, toStr])
+    const [plansRows] = await src.query('SELECT ID, Model, Qty, FUpdateDate, LineID FROM maclib.mes_plan WHERE FUpdateDate > ? AND FUpdateDate <= ? ORDER BY FUpdateDate ASC', [fromStr, toStr])
     const plans = plansRows as RowDataPacket[] as PlanRow[]
     for (const plan of plans) {
       const [qtyRowsRaw] = await src.query('SELECT ID, PID, PQty, MQty, AQty FROM maclib.mes_hqty2 WHERE PID = ? ORDER BY ID ASC', [plan.ID])
       const qtyRows = qtyRowsRaw as RowDataPacket[] as QtyRow[]
       const buckets = bucketPairs().map(pair => qtyRows.filter(q => q.ID === pair[0] || q.ID === pair[1]))
       const diffs = buckets.map(b => b.length ? computeDiff(b as QtyRow[]) : 0)
+      let lineName: string | null = null
+      let lineModel: string | null = null
+      try {
+        if (typeof (plan as any).LineID !== 'undefined' && (plan as any).LineID != null) {
+          const [liRows] = await src.query('SELECT id, lineModel, lineName FROM maclib.mes_lineinfo WHERE id = ? LIMIT 1', [(plan as any).LineID])
+          const li = (liRows as RowDataPacket[])[0] as any
+          lineModel = li?.lineModel ?? null
+          lineName = li?.lineName ?? null
+        }
+      } catch {}
+
       const payload = {
         serial_number: plan.ID,
         model_type: plan.Model,
         data_source: tag,
+        lineName: lineName ?? null,
+        lineModel: lineModel ?? null,
         date_record: plan.FUpdateDate,
         diff_cnt_8_10: diffs[0] ?? 0,
         diff_cnt_10_12: diffs[1] ?? 0,
@@ -109,15 +122,17 @@ export async function syncFromMaclib(opts: SyncOptions = {}) {
       try {
         await pmPool.query(
           `INSERT INTO uph_analys (
-            serial_number, model_type, data_source, date_record,
+            serial_number, model_type, data_source, lineName, lineModel, date_record,
             diff_cnt_8_10, diff_cnt_10_12, diff_cnt_12_14, diff_cnt_14_16,
             diff_cnt_16_18, diff_cnt_18_20, diff_cnt_20_22, diff_cnt_22_24,
             diff_cnt_24_2, diff_cnt_2_4, diff_cnt_4_6, diff_cnt_6_8
-          ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
           ON DUPLICATE KEY UPDATE
             serial_number=VALUES(serial_number),
             model_type=VALUES(model_type),
             data_source=VALUES(data_source),
+            lineName=VALUES(lineName),
+            lineModel=VALUES(lineModel),
             date_record=VALUES(date_record),
             diff_cnt_8_10=VALUES(diff_cnt_8_10),
             diff_cnt_10_12=VALUES(diff_cnt_10_12),
@@ -133,7 +148,7 @@ export async function syncFromMaclib(opts: SyncOptions = {}) {
             diff_cnt_6_8=VALUES(diff_cnt_6_8)
         `
         ,[
-          payload.serial_number, payload.model_type, payload.data_source, payload.date_record,
+          payload.serial_number, payload.model_type, payload.data_source, payload.lineName, payload.lineModel, payload.date_record,
           payload.diff_cnt_8_10, payload.diff_cnt_10_12, payload.diff_cnt_12_14, payload.diff_cnt_14_16,
           payload.diff_cnt_16_18, payload.diff_cnt_18_20, payload.diff_cnt_20_22, payload.diff_cnt_22_24,
           payload.diff_cnt_24_2, payload.diff_cnt_2_4, payload.diff_cnt_4_6, payload.diff_cnt_6_8
@@ -142,13 +157,13 @@ export async function syncFromMaclib(opts: SyncOptions = {}) {
         if (err && err.code === 'ER_DUP_ENTRY') {
           await pmPool.query(
             `REPLACE INTO uph_analys (
-              serial_number, model_type, data_source, date_record,
+              serial_number, model_type, data_source, lineName, lineModel, date_record,
               diff_cnt_8_10, diff_cnt_10_12, diff_cnt_12_14, diff_cnt_14_16,
               diff_cnt_16_18, diff_cnt_18_20, diff_cnt_20_22, diff_cnt_22_24,
               diff_cnt_24_2, diff_cnt_2_4, diff_cnt_4_6, diff_cnt_6_8
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
             [
-              payload.serial_number, payload.model_type, payload.data_source, payload.date_record,
+              payload.serial_number, payload.model_type, payload.data_source, payload.lineName, payload.lineModel, payload.date_record,
               payload.diff_cnt_8_10, payload.diff_cnt_10_12, payload.diff_cnt_12_14, payload.diff_cnt_14_16,
               payload.diff_cnt_16_18, payload.diff_cnt_18_20, payload.diff_cnt_20_22, payload.diff_cnt_22_24,
               payload.diff_cnt_24_2, payload.diff_cnt_2_4, payload.diff_cnt_4_6, payload.diff_cnt_6_8

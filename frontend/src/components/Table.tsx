@@ -30,7 +30,9 @@ export default function Table({ data }: Props) {
           <tr className="bg-gray-100">
             <th className="whitespace-nowrap">{renderSort('serial_number', '序号')}</th>
             <th className="whitespace-nowrap">{renderSort('model_type', '机型')}</th>
-            <th className="whitespace-nowrap">{renderSort('date_record', '日期')}</th>
+            <th className="whitespace-nowrap">{renderSort('lineName', '线别')}</th>
+            <th className="whitespace-nowrap">{renderSort('lineModel', '设备类型')}</th>
+            <th className="whitespace-nowrap">{renderSort('date_record', '计划时间')}</th>
             <th className="px-4 py-2 text-left">8-10</th>
             <th className="px-4 py-2 text-left">10-12</th>
             <th className="px-4 py-2 text-left">12-14</th>
@@ -51,6 +53,8 @@ export default function Table({ data }: Props) {
             <tr key={row.serial_number} className="hover:bg-gray-50">
               <td className="px-4 py-2 whitespace-nowrap">{row.serial_number}</td>
               <td className="px-4 py-2 whitespace-nowrap">{row.model_type}</td>
+              <td className="px-4 py-2 whitespace-nowrap">{row.lineName ?? ''}</td>
+              <td className="px-4 py-2 whitespace-nowrap">{row.lineModel ?? ''}</td>
               <td className="px-4 py-2 whitespace-nowrap">{formatDateTime(row.date_record)}</td>
               <td className="px-4 py-2">{row.diff_cnt_8_10}</td>
               <td className="px-4 py-2">{row.diff_cnt_10_12}</td>

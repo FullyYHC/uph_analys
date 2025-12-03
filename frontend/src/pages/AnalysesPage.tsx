@@ -41,24 +41,9 @@ export default function AnalysesPage() {
         <button
           onClick={async () => {
             try {
-              // 先诊断是否需要同步：比较 cs/sz 与 pm 的最新时间
-              const { data: max } = await analysesApi.maxDates()
-              const target = source === 'all'
-                ? [max?.cs, max?.sz].filter(Boolean).sort().pop()
-                : (source === 'sz' ? max?.sz : max?.cs)
-              const current = max?.pm
-              if (!target) {
-                setTip({ text: '暂无可同步数据', ok: true })
-                return
-              }
-              // 若已最新则直接刷新
-              if (current && String(current) >= String(target)) {
-                await fetchList()
-                setTip({ text: '已是最新数据，无需同步', ok: true })
-                return
-              }
-              const df = current ? String(current).slice(0, 10) : String(target).slice(0, 10)
-              const dt = String(target).slice(0, 10)
+              // 强制执行增量/覆盖同步，确保新字段写入
+              const df = (filters.date_from || '').slice(0, 10)
+              const dt = (filters.date_to || '').slice(0, 10)
               const srcParam = source === 'all' ? 'cs,sz' : (source === 'sz' ? 'sz' : 'cs')
               const { data } = await analysesApi.sync({ date_from: df, date_to: dt, async: true, sources: srcParam })
               if (!data?.ok && data?.reason === 'busy') {

@@ -62,5 +62,21 @@ export async function ensureSchema() {
         await pmPool.query("CREATE UNIQUE INDEX idx_model_date_src ON uph_analys (model_type, date_record, data_source)")
       } catch {}
     }
+
+    // add lineName / lineModel columns if missing
+    const [lineNameCol] = await pmPool.query<mysql.RowDataPacket[]>(
+      "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'uph_analys' AND COLUMN_NAME = 'lineName'",
+      [process.env.PM_DATABASE]
+    )
+    if (!lineNameCol || (lineNameCol as any[]).length === 0) {
+      await pmPool.query("ALTER TABLE uph_analys ADD COLUMN lineName VARCHAR(64) NULL AFTER model_type")
+    }
+    const [lineModelCol] = await pmPool.query<mysql.RowDataPacket[]>(
+      "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'uph_analys' AND COLUMN_NAME = 'lineModel'",
+      [process.env.PM_DATABASE]
+    )
+    if (!lineModelCol || (lineModelCol as any[]).length === 0) {
+      await pmPool.query("ALTER TABLE uph_analys ADD COLUMN lineModel VARCHAR(64) NULL AFTER lineName")
+    }
   } catch {}
 }

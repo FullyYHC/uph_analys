@@ -4,6 +4,8 @@ export interface LineInfo { id: number; lineModel: string }
 export interface UphAnalys {
   serial_number: number
   model_type: string
+  lineName?: string
+  lineModel?: string
   date_record: string
   diff_cnt_8_10: number
   diff_cnt_10_12: number
