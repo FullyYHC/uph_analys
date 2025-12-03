@@ -63,17 +63,17 @@ export default function Table({ data }: Props) {
               <td className="px-4 py-2 whitespace-nowrap">{row.lineModel ?? ''}</td>
               <td className="px-4 py-2 whitespace-nowrap">{formatDateTime(row.date_record)}</td>
               <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '8_10' })}>{row.diff_cnt_8_10}</td>
-              <td className="px-4 py-2">{row.diff_cnt_10_12}</td>
-              <td className="px-4 py-2">{row.diff_cnt_12_14}</td>
-              <td className="px-4 py-2">{row.diff_cnt_14_16}</td>
-              <td className="px-4 py-2">{row.diff_cnt_16_18}</td>
-              <td className="px-4 py-2">{row.diff_cnt_18_20}</td>
-              <td className="px-4 py-2">{row.diff_cnt_20_22}</td>
-              <td className="px-4 py-2">{row.diff_cnt_22_24}</td>
-              <td className="px-4 py-2">{row.diff_cnt_24_2}</td>
-              <td className="px-4 py-2">{row.diff_cnt_2_4}</td>
-              <td className="px-4 py-2">{row.diff_cnt_4_6}</td>
-              <td className="px-4 py-2">{row.diff_cnt_6_8}</td>
+              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '10_12' })}>{row.diff_cnt_10_12}</td>
+              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '12_14' })}>{row.diff_cnt_12_14}</td>
+              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '14_16' })}>{row.diff_cnt_14_16}</td>
+              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '16_18' })}>{row.diff_cnt_16_18}</td>
+              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '18_20' })}>{row.diff_cnt_18_20}</td>
+              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '20_22' })}>{row.diff_cnt_20_22}</td>
+              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '22_24' })}>{row.diff_cnt_22_24}</td>
+              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '24_2' })}>{row.diff_cnt_24_2}</td>
+              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '2_4' })}>{row.diff_cnt_2_4}</td>
+              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '4_6' })}>{row.diff_cnt_4_6}</td>
+              <td className="px-4 py-2 cursor-pointer" onClick={() => setBucket({ serial: row.serial_number, slot: '6_8' })}>{row.diff_cnt_6_8}</td>
               <td className="px-4 py-2">
                 <button
                   onClick={() => nav(`/detail/${row.serial_number}`)}
