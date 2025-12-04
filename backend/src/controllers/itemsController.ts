@@ -21,13 +21,22 @@ export async function getItem(req: Request, res: Response, next: NextFunction) {
 
 export async function patchItem(req: Request, res: Response, next: NextFunction) {
   try {
+    console.log('PATCH request received:', req.params, req.query, req.body)
     const id = Number(req.params.id)
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid ID' })
+    }
     const body = patchSchema.parse(req.body)
     const userName = req.query.userName ? String(req.query.userName) : ''
+    console.log('Extracted userName:', userName)
     const cn = extractChineseName(userName)
+    console.log('Extracted chineseName:', cn)
     const data = await updateItemPartial(id, body, cn)
+    console.log('Update successful, returning data:', data)
     res.json(data)
   } catch (err) {
+    console.error('Patch Error:', err)
+    console.error('Error stack:', err.stack)
     next(err)
   }
 }

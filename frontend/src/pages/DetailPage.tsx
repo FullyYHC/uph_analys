@@ -1,13 +1,22 @@
-import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect, useState, useRef } from 'react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useDetailStore } from '@/stores/detail'
 import { PatchBody } from '@/types/api'
 
 export default function DetailPage() {
   const { serial } = useParams<{ serial: string }>()
+  const [searchParams] = useSearchParams()
+  const userNameParam = searchParams.get('userName')
+  // Extract Chinese name from "2020120767+梅波" -> "梅波"
+  // Also handle pure URL encoded strings if necessary
+  const chineseName = userNameParam ? (userNameParam.includes('+') ? userNameParam.split('+')[1] : userNameParam) : ''
+
   const nav = useNavigate()
   const { analys, item, loading, error, fetchDetail, patchItem } = useDetailStore()
   const [form, setForm] = useState<PatchBody>({})
+  
+  // Track which field was focused last to know which name to update
+  const [activeField, setActiveField] = useState<'line_leader' | 'pie' | 'qc' | null>(null)
 
   useEffect(() => {
     if (serial) {
@@ -25,11 +34,26 @@ export default function DetailPage() {
     }
   }, [item])
 
-  const handleSave = () => {
-    if (!item) return
-    const userName = prompt('请输入用户名（格式：工号_中文名）：')
-    if (!userName) return
-    patchItem(item.id, form, userName)
+  const handleInputClick = (field: 'line_leader' | 'pie' | 'qc') => {
+    setActiveField(field)
+  }
+
+  const handleSave = async (field: 'line_leader' | 'pie' | 'qc') => {
+    // Only update the specific field that triggered the save
+    const body: PatchBody = {}
+    if (field === 'line_leader') body.line_leader_item = form.line_leader_item
+    if (field === 'pie') body.pie_item = form.pie_item
+    if (field === 'qc') body.qc_item = form.qc_item
+    
+    // Always try to update, even if item is undefined (backend will create it)
+    const id = item?.id || Number(serial)
+    if (!id) return // Safety check
+
+    try {
+      await patchItem(id, body, chineseName)
+    } catch (e) {
+      console.error("Failed to save item:", e)
+    }
   }
 
   if (loading) return <div className="text-gray-500">加载中…</div>
@@ -66,34 +90,47 @@ export default function DetailPage() {
         <h3 className="font-semibold mb-2">人员配置</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm mb-1">拉长</label>
+            <div className="flex items-center gap-2 mb-1">
+              <label className="block text-sm">拉长</label>
+              {item?.line_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.line_name}</span>}
+            </div>
             <input
               value={form.line_leader_item || ''}
+              onClick={() => handleInputClick('line_leader')}
               onChange={(e) => setForm({ ...form, line_leader_item: e.target.value })}
-              className="w-full border rounded px-3 py-2"
+              onBlur={() => handleSave('line_leader')}
+              className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              placeholder="点击输入..."
             />
           </div>
           <div>
-            <label className="block text-sm mb-1">PIE</label>
+            <div className="flex items-center gap-2 mb-1">
+              <label className="block text-sm">PIE</label>
+              {item?.pie_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.pie_name}</span>}
+            </div>
             <input
               value={form.pie_item || ''}
+              onClick={() => handleInputClick('pie')}
               onChange={(e) => setForm({ ...form, pie_item: e.target.value })}
-              className="w-full border rounded px-3 py-2"
+              onBlur={() => handleSave('pie')}
+              className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              placeholder="点击输入..."
             />
           </div>
           <div>
-            <label className="block text-sm mb-1">QC</label>
+            <div className="flex items-center gap-2 mb-1">
+              <label className="block text-sm">QC</label>
+              {item?.qc_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.qc_name}</span>}
+            </div>
             <input
               value={form.qc_item || ''}
+              onClick={() => handleInputClick('qc')}
               onChange={(e) => setForm({ ...form, qc_item: e.target.value })}
-              className="w-full border rounded px-3 py-2"
+              onBlur={() => handleSave('qc')}
+              className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              placeholder="点击输入..."
             />
           </div>
-        </div>
-        <div className="mt-4 flex justify-end">
-          <button onClick={handleSave} className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700">
-            保存
-          </button>
         </div>
       </div>
     </div>

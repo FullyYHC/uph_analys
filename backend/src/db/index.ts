@@ -88,6 +88,16 @@ export async function ensureSchema() {
     // If PK is just serial_number, drop and recreate
     if (pkCols.length === 1 && pkCols.includes('serial_number')) {
       try {
+        // Check for AUTO_INCREMENT
+        const [colRows] = await pmPool.query<mysql.RowDataPacket[]>(
+          "SELECT EXTRA FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'uph_analys' AND COLUMN_NAME = 'serial_number'",
+          [process.env.PM_DATABASE]
+        )
+        const extra = (colRows as any[])[0]?.EXTRA
+        if (extra && extra.includes('auto_increment')) {
+          await pmPool.query("ALTER TABLE uph_analys MODIFY COLUMN serial_number INT NOT NULL")
+        }
+        
         await pmPool.query("ALTER TABLE uph_analys DROP PRIMARY KEY")
         await pmPool.query("ALTER TABLE uph_analys ADD PRIMARY KEY (serial_number, data_source)")
         console.log('Updated Primary Key to (serial_number, data_source)')
@@ -96,4 +106,38 @@ export async function ensureSchema() {
       }
     }
   } catch {}
+  
+  // Ensure uph_item table exists
+  try {
+    await pmPool.query(`
+      CREATE TABLE IF NOT EXISTS uph_item (
+        id INT NOT NULL PRIMARY KEY,
+        line_leader_item TEXT NOT NULL,
+        line_name VARCHAR(64) DEFAULT '',
+        pie_item TEXT NOT NULL,
+        pie_name VARCHAR(64) DEFAULT '',
+        qc_item TEXT NOT NULL,
+        qc_name VARCHAR(64) DEFAULT ''
+      )
+    `)
+
+    // Add missing columns to uph_item if table already existed but schema was different
+    const [uphItemCols] = await pmPool.query<mysql.RowDataPacket[]>(
+      "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'uph_item'",
+      [process.env.PM_DATABASE]
+    )
+    const existingCols = (uphItemCols as any[]).map(r => r.COLUMN_NAME.toLowerCase())
+    
+    if (!existingCols.includes('line_name')) {
+      await pmPool.query("ALTER TABLE uph_item ADD COLUMN line_name VARCHAR(64) NULL AFTER line_leader_item")
+    }
+    if (!existingCols.includes('pie_name')) {
+      await pmPool.query("ALTER TABLE uph_item ADD COLUMN pie_name VARCHAR(64) NULL AFTER pie_item")
+    }
+    if (!existingCols.includes('qc_name')) {
+      await pmPool.query("ALTER TABLE uph_item ADD COLUMN qc_name VARCHAR(64) NULL AFTER qc_item")
+    }
+  } catch (e) {
+    console.error('Failed to create uph_item table:', e)
+  }
 }
