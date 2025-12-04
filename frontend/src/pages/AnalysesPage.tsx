@@ -14,9 +14,50 @@ export default function AnalysesPage() {
   const [source, setSource] = useState<'all' | 'sz' | 'hn'>('all')
   const [linePref, setLinePref] = useState<'ALL'|'A'|'B'|'C'|'D'|'E'|'F'|'O'>('ALL')
 
+  // Load filters from sessionStorage when component mounts
+  useEffect(() => {
+    const savedFilters = sessionStorage.getItem('uph_analyses_filters')
+    const savedSource = sessionStorage.getItem('uph_analyses_source')
+    const savedLinePref = sessionStorage.getItem('uph_analyses_linepref')
+    
+    if (savedFilters) {
+      try {
+        const parsedFilters = JSON.parse(savedFilters)
+        setFilters(parsedFilters)
+      } catch (e) {
+        console.error('Failed to parse saved filters:', e)
+      }
+    }
+    
+    if (savedSource) {
+      setSource(savedSource as 'all' | 'sz' | 'hn')
+    }
+    
+    if (savedLinePref) {
+      setLinePref(savedLinePref as 'ALL'|'A'|'B'|'C'|'D'|'E'|'F'|'O')
+    }
+    
+    fetchList()
+  }, [setFilters, fetchList])
+
+  // Save filters to sessionStorage when they change
+  useEffect(() => {
+    sessionStorage.setItem('uph_analyses_filters', JSON.stringify(filters))
+  }, [filters])
+
+  // Save source and linePref to sessionStorage when they change
+  useEffect(() => {
+    sessionStorage.setItem('uph_analyses_source', source)
+  }, [source])
+
+  useEffect(() => {
+    sessionStorage.setItem('uph_analyses_linepref', linePref)
+  }, [linePref])
+
+  // Fetch list when page changes
   useEffect(() => {
     fetchList()
-  }, [page])
+  }, [page, fetchList])
 
   const handleSearch = (params: Record<string, any>) => {
     const srcParam = source === 'all' ? undefined : (source === 'sz' ? 'sz' : 'cs')
