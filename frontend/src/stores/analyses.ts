@@ -7,6 +7,9 @@ interface State {
   page: number
   size: number
   total: number
+  diffTotal: number
+  diffDay: number
+  diffNight: number
   loading: boolean
   error: string | null
   sort_by: string
@@ -34,6 +37,9 @@ export const useAnalysesStore = create<State & Actions>((set, get) => ({
   page: 1,
   size: 20,
   total: 0,
+  diffTotal: 0,
+  diffDay: 0,
+  diffNight: 0,
   loading: false,
   error: null,
   sort_by: 'date_record',
@@ -64,7 +70,14 @@ export const useAnalysesStore = create<State & Actions>((set, get) => ({
         ...(params || {})
       }
       const { data } = await analysesApi.list(q)
-      set({ list: data.items, total: data.total, loading: false })
+      set({ 
+        list: data.items, 
+        total: data.total, 
+        diffTotal: data.diffTotal ?? 0, 
+        diffDay: data.diffDay ?? 0, 
+        diffNight: data.diffNight ?? 0, 
+        loading: false 
+      })
     } catch (e: any) {
       set({ error: e.message, loading: false })
     }

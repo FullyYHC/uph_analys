@@ -35,6 +35,9 @@ export interface AnalysesListRes {
   page: number
   size: number
   total: number
+  diffTotal?: number
+  diffDay?: number
+  diffNight?: number
 }
 
 export interface AnalysesDetailRes {

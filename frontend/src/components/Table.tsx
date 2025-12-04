@@ -12,7 +12,7 @@ interface Props {
 
 export default function Table({ data }: Props) {
   const nav = useNavigate()
-  const { sort_by, sort_dir, setSort, fetchList, page, size, filters } = useAnalysesStore()
+  const { sort_by, sort_dir, setSort, fetchList, page, size, filters, diffTotal, diffDay, diffNight } = useAnalysesStore()
   const [bucket, setBucket] = useState<{ serial: number; slot: string } | null>(null)
   const [flags, setFlags] = useState<Record<string, { red: boolean; yellow: boolean }>>({})
   const markFlag = (serial: number, slot: string, f: { lowPct: boolean; zeroPlan: boolean }) => {
@@ -41,6 +41,24 @@ export default function Table({ data }: Props) {
       (row.diff_cnt_16_18 || 0) +
       (row.diff_cnt_18_20 || 0) +
       (row.diff_cnt_20_22 || 0) +
+      (row.diff_cnt_22_24 || 0) +
+      (row.diff_cnt_24_2 || 0) +
+      (row.diff_cnt_2_4 || 0) +
+      (row.diff_cnt_4_6 || 0) +
+      (row.diff_cnt_6_8 || 0)
+  }
+
+  const sumDay = (row: UphAnalys) => {
+    return (row.diff_cnt_8_10 || 0) +
+      (row.diff_cnt_10_12 || 0) +
+      (row.diff_cnt_12_14 || 0) +
+      (row.diff_cnt_14_16 || 0) +
+      (row.diff_cnt_16_18 || 0) +
+      (row.diff_cnt_18_20 || 0)
+  }
+
+  const sumNight = (row: UphAnalys) => {
+    return (row.diff_cnt_20_22 || 0) +
       (row.diff_cnt_22_24 || 0) +
       (row.diff_cnt_24_2 || 0) +
       (row.diff_cnt_2_4 || 0) +
@@ -117,7 +135,30 @@ export default function Table({ data }: Props) {
             <th className="px-4 py-2 text-left">2-4</th>
             <th className="px-4 py-2 text-left">4-6</th>
             <th className="px-4 py-2 text-left">6-8</th>
-            <th className="px-4 py-2 text-left">合计</th>
+            <th className="px-4 py-2 text-left">
+              <div className="flex flex-col gap-1">
+                <span>白班</span>
+                <span className={`text-xs font-normal ${diffDay < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                  {formatNum(diffDay)}
+                </span>
+              </div>
+            </th>
+            <th className="px-4 py-2 text-left">
+              <div className="flex flex-col gap-1">
+                <span>晚班</span>
+                <span className={`text-xs font-normal ${diffNight < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                  {formatNum(diffNight)}
+                </span>
+              </div>
+            </th>
+            <th className="px-4 py-2 text-left">
+              <div className="flex flex-col gap-1">
+                <span>合计</span>
+                <span className={`text-xs font-normal ${diffTotal < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                  {formatNum(diffTotal)}
+                </span>
+              </div>
+            </th>
             <th className="px-4 py-2 text-left">操作</th>
           </tr>
         </thead>
@@ -142,6 +183,8 @@ export default function Table({ data }: Props) {
               <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'2_4',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'2_4',row.diff_cnt_2_4)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '2_4' })}>{formatNum(row.diff_cnt_2_4)}</td>
               <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'4_6',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'4_6',row.diff_cnt_4_6)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '4_6' })}>{formatNum(row.diff_cnt_4_6)}</td>
               <td className={`px-4 py-2 cursor-pointer ${isYellow(row.serial_number,'6_8',row)?'bg-yellow-100':''} ${isRed(row.serial_number,'6_8',row.diff_cnt_6_8)?'text-red-600':''}`} onClick={() => setBucket({ serial: row.serial_number, slot: '6_8' })}>{formatNum(row.diff_cnt_6_8)}</td>
+              <td className={`px-4 py-2 font-bold ${sumDay(row)<0?'text-red-600':''}`}>{formatNum(sumDay(row))}</td>
+              <td className={`px-4 py-2 font-bold ${sumNight(row)<0?'text-red-600':''}`}>{formatNum(sumNight(row))}</td>
               <td className={`px-4 py-2 font-bold ${sumDiffs(row)<0?'text-red-600':''}`}>{formatNum(sumDiffs(row))}</td>
               <td className="px-4 py-2">
                 <button

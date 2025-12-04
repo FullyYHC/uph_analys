@@ -90,7 +90,30 @@ export async function listAnalyses(params: ListParams) {
   } catch {}
   const [countRows] = await pmPool.query(`SELECT COUNT(1) as cnt FROM uph_analys ${whereSql}`, values)
   const total = (countRows as any[])[0]?.cnt ?? 0
-  return { items, page, size, total }
+
+  // Calculate Grand Total of Differences for filtered rows
+  const [sumRows] = await pmPool.query(`
+    SELECT SUM(
+      diff_cnt_8_10 + diff_cnt_10_12 + diff_cnt_12_14 + diff_cnt_14_16 + 
+      diff_cnt_16_18 + diff_cnt_18_20 + diff_cnt_20_22 + diff_cnt_22_24 + 
+      diff_cnt_24_2 + diff_cnt_2_4 + diff_cnt_4_6 + diff_cnt_6_8
+    ) as diffTotal,
+    SUM(
+      diff_cnt_8_10 + diff_cnt_10_12 + diff_cnt_12_14 + diff_cnt_14_16 + 
+      diff_cnt_16_18 + diff_cnt_18_20
+    ) as diffDay,
+    SUM(
+      diff_cnt_20_22 + diff_cnt_22_24 + 
+      diff_cnt_24_2 + diff_cnt_2_4 + diff_cnt_4_6 + diff_cnt_6_8
+    ) as diffNight
+    FROM uph_analys ${whereSql}
+  `, values)
+  const row = (sumRows as any[])[0]
+  const diffTotal = row?.diffTotal ?? 0
+  const diffDay = row?.diffDay ?? 0
+  const diffNight = row?.diffNight ?? 0
+
+  return { items, page, size, total, diffTotal, diffDay, diffNight }
 }
 
 export async function getDetailBySerialNumber(serial: number) {
