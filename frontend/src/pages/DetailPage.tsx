@@ -94,12 +94,13 @@ export default function DetailPage() {
               <label className="block text-sm">拉长</label>
               {item?.line_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.line_name}</span>}
             </div>
-            <input
+            <textarea
               value={form.line_leader_item || ''}
               onClick={() => handleInputClick('line_leader')}
               onChange={(e) => setForm({ ...form, line_leader_item: e.target.value })}
               onBlur={() => handleSave('line_leader')}
-              className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              rows={4}
+              className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y"
               placeholder="点击输入..."
             />
           </div>
@@ -108,12 +109,13 @@ export default function DetailPage() {
               <label className="block text-sm">PIE</label>
               {item?.pie_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.pie_name}</span>}
             </div>
-            <input
+            <textarea
               value={form.pie_item || ''}
               onClick={() => handleInputClick('pie')}
               onChange={(e) => setForm({ ...form, pie_item: e.target.value })}
               onBlur={() => handleSave('pie')}
-              className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              rows={4}
+              className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y"
               placeholder="点击输入..."
             />
           </div>
@@ -122,12 +124,13 @@ export default function DetailPage() {
               <label className="block text-sm">QC</label>
               {item?.qc_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.qc_name}</span>}
             </div>
-            <input
+            <textarea
               value={form.qc_item || ''}
               onClick={() => handleInputClick('qc')}
               onChange={(e) => setForm({ ...form, qc_item: e.target.value })}
               onBlur={() => handleSave('qc')}
-              className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              rows={4}
+              className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y"
               placeholder="点击输入..."
             />
           </div>
