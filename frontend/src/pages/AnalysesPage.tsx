@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useAnalysesStore } from '@/stores/analyses'
 import { analysesApi } from '@/utils/axios'
 import SourceToggle from '@/components/SourceToggle'
@@ -75,6 +75,72 @@ export default function AnalysesPage() {
     fetchList()
   }, [page, fetchList])
 
+  // Extract sync logic into a reusable function using useCallback
+  const handleSync = useCallback(async () => {
+    try {
+      // 优先使用用户筛选的时间范围，如果没有则默认同步最近24小时
+      let df = filters.date_from || ''
+      let dt = filters.date_to || ''
+      
+      if (!df || !dt) {
+        const now = new Date()
+        const from = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+        df = from.toISOString()
+        dt = now.toISOString()
+      }
+
+      const srcParam = source === 'all' ? 'cs,sz' : (source === 'sz' ? 'sz' : 'cs')
+      const { data } = await analysesApi.sync({ date_from: df, date_to: dt, async: true, sources: srcParam })
+      if (!data?.ok && data?.reason === 'busy') {
+        setTip({ text: '正在同步…', ok: true })
+        setSyncing(true)
+      } else if (!data?.ok) {
+        setTip({ text: '同步失败！(服务繁忙)', ok: false })
+        return
+      }
+      setTip({ text: '正在同步…', ok: true })
+      setSyncing(true)
+      const start = Date.now()
+      const poll = async () => {
+        try {
+          const { data: st } = await analysesApi.syncStatus()
+          if (st?.status === 'completed') {
+            setTip({ text: '同步数据成功！', ok: true })
+            setSyncing(false)
+            await fetchList()
+          } else if (st?.status === 'failed') {
+            setTip({ text: `同步失败！${st?.error ? '(' + st.error + ')' : ''}` , ok: false })
+            setSyncing(false)
+          } else if (Date.now() - start < 180000) {
+            setTimeout(poll, 2000)
+          } else {
+            setTip({ text: '同步超时！', ok: false })
+            setSyncing(false)
+          }
+        } catch (err: any) {
+          // 网络异常重试
+          setTimeout(poll, 3000)
+        }
+      }
+      setTimeout(poll, 1500)
+    } catch (e: any) {
+      const msg = e?.response?.data?.error || e?.message || '未知错误'
+      setTip({ text: `同步失败！(${msg})`, ok: false })
+      setSyncing(false)
+    }
+  }, [filters.date_from, filters.date_to, source, setTip, setSyncing, fetchList])
+
+  // Add 2-hour auto sync (only scheduled, no immediate sync on mount)
+  useEffect(() => {
+    // Set up 2-hour interval for auto sync
+    const interval = setInterval(() => {
+      handleSync()
+    }, 2 * 60 * 60 * 1000) // 2 hours in milliseconds
+    
+    // Clean up interval on unmount
+    return () => clearInterval(interval)
+  }, [handleSync])
+
   const handleSearch = (params: Record<string, any>) => {
     const srcParam = source === 'all' ? undefined : (source === 'sz' ? 'sz' : 'cs')
     setFilters({ ...params, source: srcParam })
@@ -110,59 +176,7 @@ export default function AnalysesPage() {
           }} />
         </div>
         <button
-          onClick={async () => {
-            try {
-              // 优先使用用户筛选的时间范围，如果没有则默认同步最近24小时
-              let df = filters.date_from || ''
-              let dt = filters.date_to || ''
-              
-              if (!df || !dt) {
-                const now = new Date()
-                const from = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-                df = from.toISOString()
-                dt = now.toISOString()
-              }
-
-              const srcParam = source === 'all' ? 'cs,sz' : (source === 'sz' ? 'sz' : 'cs')
-              const { data } = await analysesApi.sync({ date_from: df, date_to: dt, async: true, sources: srcParam })
-              if (!data?.ok && data?.reason === 'busy') {
-                setTip({ text: '正在同步…', ok: true })
-                setSyncing(true)
-              } else if (!data?.ok) {
-                setTip({ text: '同步失败！(服务繁忙)', ok: false })
-                return
-              }
-              setTip({ text: '正在同步…', ok: true })
-              setSyncing(true)
-              const start = Date.now()
-              const poll = async () => {
-                try {
-                  const { data: st } = await analysesApi.syncStatus()
-                  if (st?.status === 'completed') {
-                    setTip({ text: '同步数据成功！', ok: true })
-                    setSyncing(false)
-                    await fetchList()
-                  } else if (st?.status === 'failed') {
-                    setTip({ text: `同步失败！${st?.error ? '(' + st.error + ')' : ''}` , ok: false })
-                    setSyncing(false)
-                  } else if (Date.now() - start < 180000) {
-                    setTimeout(poll, 2000)
-                  } else {
-                    setTip({ text: '同步超时！', ok: false })
-                    setSyncing(false)
-                  }
-                } catch (err: any) {
-                  // 网络异常重试
-                  setTimeout(poll, 3000)
-                }
-              }
-              setTimeout(poll, 1500)
-            } catch (e: any) {
-              const msg = e?.response?.data?.error || e?.message || '未知错误'
-              setTip({ text: `同步失败！(${msg})`, ok: false })
-              setSyncing(false)
-            }
-          }}
+          onClick={handleSync}
           disabled={syncing}
           className={`bg-green-600 text-white rounded px-4 py-2 ${syncing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'}`}
         >
