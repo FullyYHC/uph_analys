@@ -78,5 +78,22 @@ export async function ensureSchema() {
     if (!lineModelCol || (lineModelCol as any[]).length === 0) {
       await pmPool.query("ALTER TABLE uph_analys ADD COLUMN lineModel VARCHAR(64) NULL AFTER lineName")
     }
+
+    // Update Primary Key to be composite (serial_number, data_source)
+    const [pkRows] = await pmPool.query<mysql.RowDataPacket[]>(
+      "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'uph_analys' AND CONSTRAINT_NAME = 'PRIMARY'",
+      [process.env.PM_DATABASE]
+    )
+    const pkCols = (pkRows as any[]).map(r => r.COLUMN_NAME)
+    // If PK is just serial_number, drop and recreate
+    if (pkCols.length === 1 && pkCols.includes('serial_number')) {
+      try {
+        await pmPool.query("ALTER TABLE uph_analys DROP PRIMARY KEY")
+        await pmPool.query("ALTER TABLE uph_analys ADD PRIMARY KEY (serial_number, data_source)")
+        console.log('Updated Primary Key to (serial_number, data_source)')
+      } catch (e) {
+        console.error('Failed to update PK:', e)
+      }
+    }
   } catch {}
 }

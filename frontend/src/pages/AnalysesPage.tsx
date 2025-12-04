@@ -55,9 +55,17 @@ export default function AnalysesPage() {
         <button
           onClick={async () => {
             try {
-              // 强制执行增量/覆盖同步，确保新字段写入
-              const df = (filters.date_from || '').slice(0, 10)
-              const dt = (filters.date_to || '').slice(0, 10)
+              // 优先使用用户筛选的时间范围，如果没有则默认同步最近24小时
+              let df = filters.date_from || ''
+              let dt = filters.date_to || ''
+              
+              if (!df || !dt) {
+                const now = new Date()
+                const from = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+                df = from.toISOString()
+                dt = now.toISOString()
+              }
+
               const srcParam = source === 'all' ? 'cs,sz' : (source === 'sz' ? 'sz' : 'cs')
               const { data } = await analysesApi.sync({ date_from: df, date_to: dt, async: true, sources: srcParam })
               if (!data?.ok && data?.reason === 'busy') {

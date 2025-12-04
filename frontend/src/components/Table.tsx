@@ -105,7 +105,7 @@ export default function Table({ data }: Props) {
         </thead>
         <tbody>
           {data.map((row, i) => (
-            <tr key={row.serial_number} className="hover:bg-gray-50">
+            <tr key={`${row.serial_number}_${row.data_source||i}`} className="hover:bg-gray-50">
               <td className="px-4 py-2 whitespace-nowrap">{startIdx + i + 1}</td>
               <td className="px-4 py-2 whitespace-nowrap">{row.serial_number}</td>
               <td className="px-4 py-2 whitespace-nowrap">{row.model_type}</td>

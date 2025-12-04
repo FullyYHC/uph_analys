@@ -8,18 +8,26 @@ type SyncOptions = {
   sources?: ('cs' | 'sz')[]
 }
 
-function toDateString(d: Date) {
+function toDateTimeString(d: Date) {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  const h = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  const s = String(d.getSeconds()).padStart(2, '0')
+  return `${y}-${m}-${day} ${h}:${min}:${s}`
 }
+
 function normalizeFrom(dateStr: string) {
   // Accept 'YYYY-MM-DD' or full datetime; normalize to day start
+  // if input is YYYY-MM-DD, append 00:00:00
+  // if input is full datetime, return as is
   return /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? `${dateStr} 00:00:00` : dateStr
 }
 function normalizeTo(dateStr: string) {
   // Accept 'YYYY-MM-DD' or full datetime; normalize to day end
+  // if input is YYYY-MM-DD, append 23:59:59
+  // if input is full datetime, return as is
   return /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? `${dateStr} 23:59:59` : dateStr
 }
 
@@ -77,8 +85,9 @@ export async function syncFromMaclib(opts: SyncOptions = {}) {
       from.setDate(to.getDate() - days)
     }
   }
-  const fromStr = normalizeFrom(toDateString(from))
-  const toStr = normalizeTo(toDateString(to))
+  // Use passed strings directly if available to preserve precision, otherwise format Date objects
+  const fromStr = opts.date_from ? normalizeFrom(opts.date_from) : normalizeFrom(toDateTimeString(from))
+  const toStr = opts.date_to ? normalizeTo(opts.date_to) : normalizeTo(toDateTimeString(to))
   for (const { tag, pool: src } of sources) {
     insertedBy[tag] = 0
     const [plansRows] = await src.query('SELECT ID, Model, Qty, FUpdateDate, LineID FROM maclib.mes_plan WHERE FUpdateDate > ? AND FUpdateDate <= ? ORDER BY FUpdateDate ASC', [fromStr, toStr])
