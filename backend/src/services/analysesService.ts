@@ -6,6 +6,7 @@ type ListParams = {
   date_from?: string
   date_to?: string
   model?: string
+  search?: string
   source?: string
   line_prefix?: string
   line_group?: string
@@ -60,10 +61,28 @@ export async function listAnalyses(params: ListParams) {
   if (params.source && params.source !== 'all') { where.push('data_source = ?'); values.push(params.source) }
   if (params.line_prefix && /^[A-Fa-f]$/.test(params.line_prefix)) { where.push('lineName LIKE ?'); values.push(`${params.line_prefix.toUpperCase()}%`) }
   if (params.line_group === 'O') { where.push('(lineName IS NULL OR (lineName NOT LIKE ? AND lineName NOT LIKE ? AND lineName NOT LIKE ? AND lineName NOT LIKE ? AND lineName NOT LIKE ? AND lineName NOT LIKE ?))'); values.push('A%','B%','C%','D%','E%','F%') }
+  if (params.search) {
+    where.push('(serial_number LIKE ? OR model_type LIKE ? OR lineName LIKE ? OR lineModel LIKE ?)');
+    const searchVal = `%${params.search}%`;
+    values.push(searchVal, searchVal, searchVal, searchVal);
+  }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
-  const sortCol = params.sort_by ?? 'date_record'
+  let sortCol = params.sort_by ?? 'date_record'
   const sortDir = params.sort_dir ?? 'desc'
-  const [rows] = await pmPool.query(`SELECT * FROM uph_analys ${whereSql} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`, [...values, size, offset])
+  
+  // Handle sort for calculated columns
+  let sortSql = ''
+  if (sortCol === 'diffDay') {
+    sortSql = '(diff_cnt_8_10 + diff_cnt_10_12 + diff_cnt_12_14 + diff_cnt_14_16 + diff_cnt_16_18 + diff_cnt_18_20)'
+  } else if (sortCol === 'diffNight') {
+    sortSql = '(diff_cnt_20_22 + diff_cnt_22_24 + diff_cnt_24_2 + diff_cnt_2_4 + diff_cnt_4_6 + diff_cnt_6_8)'
+  } else if (sortCol === 'diffTotal') {
+    sortSql = '(diff_cnt_8_10 + diff_cnt_10_12 + diff_cnt_12_14 + diff_cnt_14_16 + diff_cnt_16_18 + diff_cnt_18_20 + diff_cnt_20_22 + diff_cnt_22_24 + diff_cnt_24_2 + diff_cnt_2_4 + diff_cnt_4_6 + diff_cnt_6_8)'
+  } else {
+    sortSql = sortCol
+  }
+  
+  const [rows] = await pmPool.query(`SELECT * FROM uph_analys ${whereSql} ORDER BY ${sortSql} ${sortDir} LIMIT ? OFFSET ?`, [...values, size, offset])
   const items = (rows as any[]) as UphAnalys[]
   try {
     const ids = items.map(it => it.serial_number)

@@ -16,6 +16,7 @@ interface State {
   sort_dir: 'asc' | 'desc'
   filters: {
     model?: string
+    search?: string
     date_from?: string
     date_to?: string
     source?: string
@@ -29,7 +30,7 @@ interface Actions {
   setPage: (p: number) => void
   setSort: (col: string) => void
   setSize: (s: number) => void
-  setFilters: (f: Partial<{ model?: string; date_from?: string; date_to?: string; source?: string; line_prefix?: string; line_group?: string }>) => void
+  setFilters: (f: Partial<{ model?: string; search?: string; date_from?: string; date_to?: string; source?: string; line_prefix?: string; line_group?: string }>) => void
 }
 
 export const useAnalysesStore = create<State & Actions>((set, get) => ({

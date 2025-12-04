@@ -135,25 +135,25 @@ export default function Table({ data }: Props) {
             <th className="px-4 py-2 text-left">2-4</th>
             <th className="px-4 py-2 text-left">4-6</th>
             <th className="px-4 py-2 text-left">6-8</th>
-            <th className="px-4 py-2 text-left">
+            <th className="px-4 py-2 text-left whitespace-nowrap">
               <div className="flex flex-col gap-1">
-                <span>白班</span>
+                {renderSort('diffDay', '白班')}
                 <span className={`text-xs font-normal ${diffDay < 0 ? 'text-red-600' : 'text-gray-600'}`}>
                   {formatNum(diffDay)}
                 </span>
               </div>
             </th>
-            <th className="px-4 py-2 text-left">
+            <th className="px-4 py-2 text-left whitespace-nowrap">
               <div className="flex flex-col gap-1">
-                <span>晚班</span>
+                {renderSort('diffNight', '晚班')}
                 <span className={`text-xs font-normal ${diffNight < 0 ? 'text-red-600' : 'text-gray-600'}`}>
                   {formatNum(diffNight)}
                 </span>
               </div>
             </th>
-            <th className="px-4 py-2 text-left">
+            <th className="px-4 py-2 text-left whitespace-nowrap">
               <div className="flex flex-col gap-1">
-                <span>合计</span>
+                {renderSort('diffTotal', '合计')}
                 <span className={`text-xs font-normal ${diffTotal < 0 ? 'text-red-600' : 'text-gray-600'}`}>
                   {formatNum(diffTotal)}
                 </span>
