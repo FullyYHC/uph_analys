@@ -20,15 +20,7 @@ export default function AnalysesPage() {
     const savedSource = sessionStorage.getItem('uph_analyses_source')
     const savedLinePref = sessionStorage.getItem('uph_analyses_linepref')
     
-    if (savedFilters) {
-      try {
-        const parsedFilters = JSON.parse(savedFilters)
-        setFilters(parsedFilters)
-      } catch (e) {
-        console.error('Failed to parse saved filters:', e)
-      }
-    }
-    
+    // First, restore source and linePref without triggering setFilters
     if (savedSource) {
       setSource(savedSource as 'all' | 'sz' | 'hn')
     }
@@ -37,8 +29,27 @@ export default function AnalysesPage() {
       setLinePref(savedLinePref as 'ALL'|'A'|'B'|'C'|'D'|'E'|'F'|'O')
     }
     
-    fetchList()
+    // Then, restore filters
+    if (savedFilters) {
+      try {
+        const parsedFilters = JSON.parse(savedFilters)
+        setFilters(parsedFilters)
+      } catch (e) {
+        console.error('Failed to parse saved filters:', e)
+      }
+    } else {
+      // If no saved filters, just fetch the list
+      fetchList()
+    }
   }, [setFilters, fetchList])
+
+  // Restore page after filters are set (because setFilters resets page to 1)
+  useEffect(() => {
+    const savedPage = sessionStorage.getItem('uph_analyses_page')
+    if (savedPage) {
+      setPage(Number(savedPage))
+    }
+  }, [filters])
 
   // Save filters to sessionStorage when they change
   useEffect(() => {
@@ -53,6 +64,11 @@ export default function AnalysesPage() {
   useEffect(() => {
     sessionStorage.setItem('uph_analyses_linepref', linePref)
   }, [linePref])
+
+  // Save page to sessionStorage when it changes
+  useEffect(() => {
+    sessionStorage.setItem('uph_analyses_page', page.toString())
+  }, [page])
 
   // Fetch list when page changes
   useEffect(() => {
