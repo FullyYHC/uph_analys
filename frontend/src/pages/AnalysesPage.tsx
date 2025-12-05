@@ -12,8 +12,17 @@ export default function AnalysesPage() {
   const { list, page, size, total, loading, error, fetchList, setPage, setSize, setFilters, filters } = useAnalysesStore()
   const [searchParams] = useSearchParams()
   const userNameParam = searchParams.get('userName')
-  // Extract Chinese name from "2020120767+梅波" -> "梅波" or "梅波" -> "梅波"
-  const chineseName = userNameParam ? (userNameParam.includes('+') ? userNameParam.split('+')[1] : userNameParam) : ''
+  // Extract Chinese name from "2020120767+梅波" -> "梅波" or "2020120767_梅波" -> "梅波" or "梅波" -> "梅波"
+  const chineseName = userNameParam ? (() => {
+    if (userNameParam.includes('+')) {
+      return userNameParam.split('+')[1] || userNameParam;
+    }
+    const underscoreIndex = userNameParam.indexOf('_');
+    if (underscoreIndex !== -1) {
+      return userNameParam.substring(underscoreIndex + 1);
+    }
+    return userNameParam;
+  })() : ''
   
   const [tip, setTip] = useState<{ text: string; ok: boolean } | null>(null)
   const [syncing, setSyncing] = useState(false)

@@ -18,5 +18,14 @@ export const analysesApi = {
 
 export const itemsApi = {
   get: (id: number) => api.get<UphItem>(`/items/${id}`),
-  patch: (id: number, body: PatchBody, userName?: string) => api.patch<UphItem>(`/items/${id}`, body, { params: { userName } })
+  patch: (id: number, body: PatchBody, userName?: string) => {
+    // Include userName in the request body instead of as a URL parameter
+    // This avoids issues with URL encoding for Chinese names
+    const requestBody = {
+      ...body,
+      // Only add userName if it exists
+      ...(userName ? { userName } : {})
+    };
+    return api.patch<UphItem>(`/items/${id}`, requestBody);
+  }
 }

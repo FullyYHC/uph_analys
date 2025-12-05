@@ -7,13 +7,28 @@ export default function DetailPage() {
   const { serial } = useParams<{ serial: string }>()
   const [searchParams] = useSearchParams()
   const userNameParam = searchParams.get('userName')
-  // Extract Chinese name from "2020120767+梅波" -> "梅波"
+  // Extract Chinese name from "2020120767+梅波" -> "梅波" or "2020120767_梅波" -> "梅波"
   // Also handle pure URL encoded strings if necessary
-  const chineseName = userNameParam ? (userNameParam.includes('+') ? userNameParam.split('+')[1] : userNameParam) : ''
+  const chineseName = userNameParam ? (() => {
+    if (userNameParam.includes('+')) {
+      return userNameParam.split('+')[1] || userNameParam;
+    }
+    const underscoreIndex = userNameParam.indexOf('_');
+    if (underscoreIndex !== -1) {
+      return userNameParam.substring(underscoreIndex + 1);
+    }
+    return userNameParam;
+  })() : ''
 
   const nav = useNavigate()
   const { analys, item, loading, error, fetchDetail, patchItem } = useDetailStore()
-  const [form, setForm] = useState<PatchBody>({})
+  const [form, setForm] = useState<PatchBody>({
+    line_leader_item: '',
+    pie_item: '',
+    qc_item: ''
+  })
+  // Track which field was clicked to show chineseName only for that field
+  const [activeField, setActiveField] = useState<'line_leader' | 'pie' | 'qc' | null>(null)
 
   useEffect(() => {
     if (serial) {
@@ -31,19 +46,28 @@ export default function DetailPage() {
     }
   }, [item])
 
-  const handleSave = async (field: 'line_leader' | 'pie' | 'qc') => {
-    // Only update the specific field that triggered the save
-    const body: PatchBody = {}
-    if (field === 'line_leader') body.line_leader_item = form.line_leader_item
-    if (field === 'pie') body.pie_item = form.pie_item
-    if (field === 'qc') body.qc_item = form.qc_item
+  const handleSave = async () => {
+    // Only update the field that was actually edited (activeField)
+    const body: Partial<PatchBody> = {};
     
     // Always try to update, even if item is undefined (backend will create it)
     const id = item?.id || Number(serial)
     if (!id) return // Safety check
 
     try {
-      await patchItem(id, body, chineseName)
+      // Only include the active field in the update
+      if (activeField === 'line_leader') {
+        body.line_leader_item = form.line_leader_item || '';
+      } else if (activeField === 'pie') {
+        body.pie_item = form.pie_item || '';
+      } else if (activeField === 'qc') {
+        body.qc_item = form.qc_item || '';
+      }
+      
+      // Save data with chineseName
+      await patchItem(id, body as PatchBody, chineseName)
+      // Clear active field after saving
+      setActiveField(null)
     } catch (e) {
       console.error("Failed to save item:", e)
     }
@@ -86,11 +110,13 @@ export default function DetailPage() {
             <div className="flex items-center gap-2 mb-1">
               <label className="block text-sm">拉长</label>
               {item?.line_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.line_name}</span>}
+              {chineseName && activeField === 'line_leader' && <span className="text-xs text-blue-600 border border-blue-200 bg-blue-50 px-1 rounded">{chineseName}</span>}
             </div>
             <textarea
               value={form.line_leader_item || ''}
+              onClick={() => setActiveField('line_leader')}
               onChange={(e) => setForm({ ...form, line_leader_item: e.target.value })}
-              onBlur={() => handleSave('line_leader')}
+              onBlur={() => handleSave()}
               rows={4}
               className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y"
               placeholder="点击输入..."
@@ -100,11 +126,13 @@ export default function DetailPage() {
             <div className="flex items-center gap-2 mb-1">
               <label className="block text-sm">PIE</label>
               {item?.pie_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.pie_name}</span>}
+              {chineseName && activeField === 'pie' && <span className="text-xs text-blue-600 border border-blue-200 bg-blue-50 px-1 rounded">{chineseName}</span>}
             </div>
             <textarea
               value={form.pie_item || ''}
+              onClick={() => setActiveField('pie')}
               onChange={(e) => setForm({ ...form, pie_item: e.target.value })}
-              onBlur={() => handleSave('pie')}
+              onBlur={() => handleSave()}
               rows={4}
               className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y"
               placeholder="点击输入..."
@@ -114,11 +142,13 @@ export default function DetailPage() {
             <div className="flex items-center gap-2 mb-1">
               <label className="block text-sm">QC</label>
               {item?.qc_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.qc_name}</span>}
+              {chineseName && activeField === 'qc' && <span className="text-xs text-blue-600 border border-blue-200 bg-blue-50 px-1 rounded">{chineseName}</span>}
             </div>
             <textarea
               value={form.qc_item || ''}
+              onClick={() => setActiveField('qc')}
               onChange={(e) => setForm({ ...form, qc_item: e.target.value })}
-              onBlur={() => handleSave('qc')}
+              onBlur={() => handleSave()}
               rows={4}
               className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y"
               placeholder="点击输入..."
