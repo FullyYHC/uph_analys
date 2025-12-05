@@ -92,50 +92,53 @@ export default function DetailModal({ serial, chineseName, onClose }: Props) {
             <h3 className="font-semibold mb-2">人员配置</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <label className="block text-sm">拉长</label>
-                  {item?.line_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.line_name}</span>}
-                </div>
-                <textarea
-                  value={form.line_leader_item || ''}
-                  onClick={() => handleInputClick('line_leader')}
-                  onChange={(e) => setForm({ ...form, line_leader_item: e.target.value })}
-                  onBlur={() => handleSave('line_leader')}
-                  rows={4}
-                  className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y"
-                  placeholder="点击输入..."
-                />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <label className="block text-sm">PIE</label>
-                  {item?.pie_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.pie_name}</span>}
-                </div>
-                <textarea
-                  value={form.pie_item || ''}
-                  onClick={() => handleInputClick('pie')}
-                  onChange={(e) => setForm({ ...form, pie_item: e.target.value })}
-                  onBlur={() => handleSave('pie')}
-                  rows={4}
-                  className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y"
-                  placeholder="点击输入..."
-                />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <label className="block text-sm">QC</label>
-                  {item?.qc_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.qc_name}</span>}
-                </div>
-                <textarea
-                  value={form.qc_item || ''}
-                  onClick={() => handleInputClick('qc')}
-                  onChange={(e) => setForm({ ...form, qc_item: e.target.value })}
-                  onBlur={() => handleSave('qc')}
-                  rows={4}
-                  className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y"
-                  placeholder="点击输入..."
-                />
-              </div>
+            <div className="flex items-center gap-2 mb-1">
+              <label className="block text-sm">拉长</label>
+              {item?.line_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.line_name}</span>}
+              {chineseName && <span className="text-xs text-blue-600 border border-blue-200 bg-blue-50 px-1 rounded">{chineseName}</span>}
+            </div>
+            <textarea
+              value={form.line_leader_item || ''}
+              onClick={() => handleInputClick('line_leader')}
+              onChange={(e) => setForm({ ...form, line_leader_item: e.target.value })}
+              onBlur={() => handleSave('line_leader')}
+              rows={4}
+              className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y"
+              placeholder="点击输入..."
+            />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <label className="block text-sm">PIE</label>
+              {item?.pie_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.pie_name}</span>}
+              {chineseName && <span className="text-xs text-blue-600 border border-blue-200 bg-blue-50 px-1 rounded">{chineseName}</span>}
+            </div>
+            <textarea
+              value={form.pie_item || ''}
+              onClick={() => handleInputClick('pie')}
+              onChange={(e) => setForm({ ...form, pie_item: e.target.value })}
+              onBlur={() => handleSave('pie')}
+              rows={4}
+              className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y"
+              placeholder="点击输入..."
+            />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <label className="block text-sm">QC</label>
+              {item?.qc_name && <span className="text-xs text-red-600 border border-red-200 bg-red-50 px-1 rounded">{item.qc_name}</span>}
+              {chineseName && <span className="text-xs text-blue-600 border border-blue-200 bg-blue-50 px-1 rounded">{chineseName}</span>}
+            </div>
+            <textarea
+              value={form.qc_item || ''}
+              onClick={() => handleInputClick('qc')}
+              onChange={(e) => setForm({ ...form, qc_item: e.target.value })}
+              onBlur={() => handleSave('qc')}
+              rows={4}
+              className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y"
+              placeholder="点击输入..."
+            />
+          </div>
             </div>
           </div>
         </div>
