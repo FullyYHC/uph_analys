@@ -111,7 +111,7 @@ export default function AnalysesPage() {
           } else if (st?.status === 'failed') {
             setTip({ text: `同步失败！${st?.error ? '(' + st.error + ')' : ''}` , ok: false })
             setSyncing(false)
-          } else if (Date.now() - start < 180000) {
+          } else if (Date.now() - start < 240000) {
             setTimeout(poll, 2000)
           } else {
             setTip({ text: '同步超时！', ok: false })

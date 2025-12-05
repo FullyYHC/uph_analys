@@ -16,7 +16,7 @@ function genId() {
   return Math.random().toString(36).slice(2)
 }
 
-const DEFAULT_MAX_MS = Number(process.env.SYNC_MAX_MS || 120000)
+const DEFAULT_MAX_MS = Number(process.env.SYNC_MAX_MS || 240000)
 
 export async function startSyncJob(params: { days?: number; date_from?: string; date_to?: string; sources?: ('cs'|'sz')[]; max_ms?: number }) {
   if (currentJob && currentJob.status === 'running') {
