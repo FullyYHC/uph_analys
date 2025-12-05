@@ -90,7 +90,7 @@ export default function SearchForm({ onSearch, initialFrom, initialTo }: Props) 
         placeholder="搜索 PlanID/机型/线别/设备类型"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="border rounded px-3 py-2 flex-grow min-w-[200px]"
+        className="border rounded px-3 py-2 w-[300px]"
       />
       <input
         type="datetime-local"
