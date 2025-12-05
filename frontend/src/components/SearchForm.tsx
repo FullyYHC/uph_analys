@@ -43,13 +43,54 @@ export default function SearchForm({ onSearch, initialFrom, initialTo }: Props) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // 前日达成按钮功能：设置开始时间为前一日凌晨01:00:00，结束时间为当日凌晨01:00:00
+  const handleYesterdayAchievement = () => {
+    const now = new Date()
+    const yesterday = new Date(now)
+    yesterday.setDate(yesterday.getDate() - 1)
+    
+    // 设置开始时间：前一日凌晨01:00:00
+    const fromDate = new Date(yesterday)
+    fromDate.setHours(1, 0, 0, 0)
+    
+    // 设置结束时间：当日凌晨01:00:00
+    const toDate = new Date(now)
+    toDate.setHours(1, 0, 0, 0)
+    
+    // 格式化日期为datetime-local输入框格式（YYYY-MM-DDTHH:mm:ss）
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      const seconds = String(date.getSeconds()).padStart(2, '0')
+      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
+    }
+    
+    const fromStr = formatDate(fromDate)
+    const toStr = formatDate(toDate)
+    
+    setDateFrom(fromStr)
+    setDateTo(toStr)
+    onSearch({ search, date_from: fromStr, date_to: toStr })
+  }
+
+  // 清除筛选按钮功能：恢复默认状态
+  const handleClearFilter = () => {
+    setSearch('')
+    setDateFrom('')
+    setDateTo('')
+    onSearch({ search: '', date_from: '', date_to: '' })
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-6 gap-2 mb-4">
       <input
         placeholder="搜索 PlanID/机型/线别/设备类型"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="border rounded px-3 py-2"
+        className="border rounded px-3 py-2 md:col-span-2"
       />
       <input
         type="datetime-local"
@@ -65,7 +106,13 @@ export default function SearchForm({ onSearch, initialFrom, initialTo }: Props) 
         onChange={(e) => setDateTo(e.target.value)}
         className="border rounded px-3 py-2"
       />
-      <button type="submit" className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700">
+      <button type="button" onClick={handleYesterdayAchievement} className="bg-green-600 text-white rounded px-3 py-2 hover:bg-green-700">
+        前日达成
+      </button>
+      <button type="button" onClick={handleClearFilter} className="bg-gray-600 text-white rounded px-3 py-2 hover:bg-gray-700">
+        清除筛选
+      </button>
+      <button type="submit" className="bg-blue-600 text-white rounded px-3 py-2 hover:bg-blue-700">
         查询
       </button>
     </form>
