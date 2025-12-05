@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useAnalysesStore } from '@/stores/analyses'
 import { analysesApi } from '@/utils/axios'
 import SourceToggle from '@/components/SourceToggle'
@@ -14,154 +14,26 @@ export default function AnalysesPage() {
   const [source, setSource] = useState<'all' | 'sz' | 'hn'>('all')
   const [linePref, setLinePref] = useState<'ALL'|'A'|'B'|'C'|'D'|'E'|'F'|'O'>('ALL')
 
-  // Load filters from sessionStorage when component mounts
-  useEffect(() => {
-    const savedFilters = sessionStorage.getItem('uph_analyses_filters')
-    const savedSource = sessionStorage.getItem('uph_analyses_source')
-    const savedLinePref = sessionStorage.getItem('uph_analyses_linepref')
-    const savedPage = sessionStorage.getItem('uph_analyses_page')
-    
-    // Get saved values or defaults
-    const restoredSource = savedSource as 'all' | 'sz' | 'hn' || 'all'
-    const restoredLinePref = savedLinePref as 'ALL'|'A'|'B'|'C'|'D'|'E'|'F'|'O' || 'ALL'
-    const restoredPage = savedPage ? Number(savedPage) : 1
-    
-    // Update state with saved values
-    setSource(restoredSource)
-    setLinePref(restoredLinePref)
-    
-    // Parse saved filters
-    let parsedFilters: any = {};
-    if (savedFilters) {
-      try {
-        parsedFilters = JSON.parse(savedFilters)
-      } catch (e) {
-        console.error('Failed to parse saved filters:', e)
-      }
-    }
-    
-    // Apply source filter based on restoredSource, not current source state
-    const srcParam = restoredSource === 'all' ? undefined : (restoredSource === 'sz' ? 'sz' : 'cs')
-    
-    // Apply linePref filter based on restoredLinePref, not current linePref state
-    let linePrefix: string | undefined;
-    let lineGroup: string | undefined;
-    if (restoredLinePref === 'ALL') {
-      linePrefix = undefined;
-      lineGroup = undefined;
-    } else if (restoredLinePref === 'O') {
-      linePrefix = undefined;
-      lineGroup = 'O';
-    } else {
-      linePrefix = restoredLinePref;
-      lineGroup = undefined;
-    }
-    
-    // Set all filters together
-    setFilters({ ...parsedFilters, source: srcParam, line_prefix: linePrefix, line_group: lineGroup })
-    
-    // Restore page number
-    setPage(restoredPage)
-    
-    // Fetch list with restored filters and page
-    fetchList()
-  }, [setFilters, fetchList, setPage, setSource, setLinePref])
-
-  // No need for separate page restore since it's handled in the main mount effect
-
-  // Save filters to sessionStorage when they change
-  useEffect(() => {
-    sessionStorage.setItem('uph_analyses_filters', JSON.stringify(filters))
-  }, [filters])
-
-  // Save source and linePref to sessionStorage when they change
-  useEffect(() => {
-    sessionStorage.setItem('uph_analyses_source', source)
-  }, [source])
-
-  useEffect(() => {
-    sessionStorage.setItem('uph_analyses_linepref', linePref)
-  }, [linePref])
-
-  // Save page to sessionStorage when it changes
-  useEffect(() => {
-    sessionStorage.setItem('uph_analyses_page', page.toString())
-  }, [page])
-
-  // Fetch list when page changes
   useEffect(() => {
     fetchList()
-  }, [page, fetchList])
-
-  // Extract sync logic into a reusable function using useCallback
-  const handleSync = useCallback(async () => {
-    try {
-      // 优先使用用户筛选的时间范围，如果没有则默认同步最近24小时
-      let df = filters.date_from || ''
-      let dt = filters.date_to || ''
-      
-      if (!df || !dt) {
-        const now = new Date()
-        const from = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-        df = from.toISOString()
-        dt = now.toISOString()
-      }
-
-      const srcParam = source === 'all' ? 'cs,sz' : (source === 'sz' ? 'sz' : 'cs')
-      const { data } = await analysesApi.sync({ date_from: df, date_to: dt, async: true, sources: srcParam })
-      if (!data?.ok && data?.reason === 'busy') {
-        setTip({ text: '正在同步…', ok: true })
-        setSyncing(true)
-      } else if (!data?.ok) {
-        setTip({ text: '同步失败！(服务繁忙)', ok: false })
-        return
-      }
-      setTip({ text: '正在同步…', ok: true })
-      setSyncing(true)
-      const start = Date.now()
-      const poll = async () => {
-        try {
-          const { data: st } = await analysesApi.syncStatus()
-          if (st?.status === 'completed') {
-            setTip({ text: '同步数据成功！', ok: true })
-            setSyncing(false)
-            await fetchList()
-          } else if (st?.status === 'failed') {
-            setTip({ text: `同步失败！${st?.error ? '(' + st.error + ')' : ''}` , ok: false })
-            setSyncing(false)
-          } else if (Date.now() - start < 240000) {
-            setTimeout(poll, 2000)
-          } else {
-            setTip({ text: '同步超时！', ok: false })
-            setSyncing(false)
-          }
-        } catch (err: any) {
-          // 网络异常重试
-          setTimeout(poll, 3000)
-        }
-      }
-      setTimeout(poll, 1500)
-    } catch (e: any) {
-      const msg = e?.response?.data?.error || e?.message || '未知错误'
-      setTip({ text: `同步失败！(${msg})`, ok: false })
-      setSyncing(false)
-    }
-  }, [filters.date_from, filters.date_to, source, setTip, setSyncing, fetchList])
-
-  // Add 2-hour auto sync (only scheduled, no immediate sync on mount)
-  useEffect(() => {
-    // Set up 2-hour interval for auto sync
-    const interval = setInterval(() => {
-      handleSync()
-    }, 2 * 60 * 60 * 1000) // 2 hours in milliseconds
-    
-    // Clean up interval on unmount
-    return () => clearInterval(interval)
-  }, [handleSync])
+  }, [page, filters])
 
   const handleSearch = (params: Record<string, any>) => {
     const srcParam = source === 'all' ? undefined : (source === 'sz' ? 'sz' : 'cs')
-    setFilters({ ...params, source: srcParam })
+    // Apply line prefix filter when searching
+    let linePrefix: string | undefined;
+    let lineGroup: string | undefined;
+    if (linePref === 'ALL') {
+      linePrefix = undefined;
+      lineGroup = undefined;
+    } else if (linePref === 'O') {
+      linePrefix = undefined;
+      lineGroup = 'O';
+    } else {
+      linePrefix = linePref;
+      lineGroup = undefined;
+    }
+    setFilters({ ...params, source: srcParam, line_prefix: linePrefix, line_group: lineGroup })
     setPage(1)
     fetchList()
   }
@@ -176,25 +48,105 @@ export default function AnalysesPage() {
           <SourceToggle value={source} onChange={(v) => {
             setSource(v)
             const srcParam = v === 'all' ? undefined : (v === 'sz' ? 'sz' : 'cs')
-            setFilters({ source: srcParam })
+            // Apply line prefix filter when source changes
+            let linePrefix: string | undefined;
+            let lineGroup: string | undefined;
+            if (linePref === 'ALL') {
+              linePrefix = undefined;
+              lineGroup = undefined;
+            } else if (linePref === 'O') {
+              linePrefix = undefined;
+              lineGroup = 'O';
+            } else {
+              linePrefix = linePref;
+              lineGroup = undefined;
+            }
+            setFilters({ source: srcParam, line_prefix: linePrefix, line_group: lineGroup })
             setPage(1)
             fetchList()
           }} />
           <LinePrefixToggle value={linePref} onChange={(v) => {
             setLinePref(v)
+            const srcParam = source === 'all' ? undefined : (source === 'sz' ? 'sz' : 'cs')
+            // Apply line prefix filter based on selection
+            let linePrefix: string | undefined;
+            let lineGroup: string | undefined;
             if (v === 'ALL') {
-              setFilters({ line_prefix: undefined, line_group: undefined })
+              linePrefix = undefined;
+              lineGroup = undefined;
             } else if (v === 'O') {
-              setFilters({ line_prefix: undefined, line_group: 'O' })
+              linePrefix = undefined;
+              lineGroup = 'O';
             } else {
-              setFilters({ line_prefix: v, line_group: undefined })
+              linePrefix = v;
+              lineGroup = undefined;
             }
+            setFilters({ source: srcParam, line_prefix: linePrefix, line_group: lineGroup })
             setPage(1)
             fetchList()
           }} />
         </div>
         <button
-          onClick={handleSync}
+          onClick={async () => {
+            try {
+              // 先诊断是否需要同步：比较 cs/sz 与 pm 的最新时间
+              const { data: max } = await analysesApi.maxDates()
+              const target = source === 'all'
+                ? [max?.cs, max?.sz].filter(Boolean).sort().pop()
+                : (source === 'sz' ? max?.sz : max?.cs)
+              const current = max?.pm
+              if (!target) {
+                setTip({ text: '暂无可同步数据', ok: true })
+                return
+              }
+              // 若已最新则直接刷新
+              if (current && String(current) >= String(target)) {
+                await fetchList()
+                setTip({ text: '已是最新数据，无需同步', ok: true })
+                return
+              }
+              const df = current ? String(current).slice(0, 10) : String(target).slice(0, 10)
+              const dt = String(target).slice(0, 10)
+              const srcParam = source === 'all' ? 'cs,sz' : (source === 'sz' ? 'sz' : 'cs')
+              const { data } = await analysesApi.sync({ date_from: df, date_to: dt, async: true, sources: srcParam })
+              if (!data?.ok && data?.reason === 'busy') {
+                setTip({ text: '正在同步…', ok: true })
+                setSyncing(true)
+              } else if (!data?.ok) {
+                setTip({ text: '同步失败！(服务繁忙)', ok: false })
+                return
+              }
+              setTip({ text: '正在同步…', ok: true })
+              setSyncing(true)
+              const start = Date.now()
+              const poll = async () => {
+                try {
+                  const { data: st } = await analysesApi.syncStatus()
+                  if (st?.status === 'completed') {
+                    setTip({ text: '同步数据成功！', ok: true })
+                    setSyncing(false)
+                    await fetchList()
+                  } else if (st?.status === 'failed') {
+                    setTip({ text: `同步失败！${st?.error ? '(' + st.error + ')' : ''}` , ok: false })
+                    setSyncing(false)
+                  } else if (Date.now() - start < 180000) {
+                    setTimeout(poll, 2000)
+                  } else {
+                    setTip({ text: '同步超时！', ok: false })
+                    setSyncing(false)
+                  }
+                } catch (err: any) {
+                  // 网络异常重试
+                  setTimeout(poll, 3000)
+                }
+              }
+              setTimeout(poll, 1500)
+            } catch (e: any) {
+              const msg = e?.response?.data?.error || e?.message || '未知错误'
+              setTip({ text: `同步失败！(${msg})`, ok: false })
+              setSyncing(false)
+            }
+          }}
           disabled={syncing}
           className={`bg-green-600 text-white rounded px-4 py-2 ${syncing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'}`}
         >
