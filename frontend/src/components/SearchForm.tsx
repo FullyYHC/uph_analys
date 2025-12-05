@@ -85,34 +85,34 @@ export default function SearchForm({ onSearch, initialFrom, initialTo }: Props) 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-6 gap-2 mb-4">
+    <form onSubmit={handleSubmit} className="flex flex-wrap gap-2 mb-4">
       <input
         placeholder="搜索 PlanID/机型/线别/设备类型"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="border rounded px-3 py-2 md:col-span-2"
+        className="border rounded px-3 py-2 flex-grow min-w-[200px]"
       />
       <input
         type="datetime-local"
         step="1"
         value={dateFrom}
         onChange={(e) => setDateFrom(e.target.value)}
-        className="border rounded px-3 py-2"
+        className="border rounded px-3 py-2 w-[200px]"
       />
       <input
         type="datetime-local"
         step="1"
         value={dateTo}
         onChange={(e) => setDateTo(e.target.value)}
-        className="border rounded px-3 py-2"
+        className="border rounded px-3 py-2 w-[200px]"
       />
-      <button type="button" onClick={handleYesterdayAchievement} className="bg-green-600 text-white rounded px-3 py-2 hover:bg-green-700">
+      <button type="button" onClick={handleYesterdayAchievement} className="bg-green-600 text-white rounded px-3 py-2 hover:bg-green-700 w-[100px]">
         前日达成
       </button>
-      <button type="button" onClick={handleClearFilter} className="bg-gray-600 text-white rounded px-3 py-2 hover:bg-gray-700">
+      <button type="button" onClick={handleClearFilter} className="bg-gray-600 text-white rounded px-3 py-2 hover:bg-gray-700 w-[100px]">
         清除筛选
       </button>
-      <button type="submit" className="bg-blue-600 text-white rounded px-3 py-2 hover:bg-blue-700">
+      <button type="submit" className="bg-blue-600 text-white rounded px-3 py-2 hover:bg-blue-700 w-[100px]">
         查询
       </button>
     </form>
