@@ -19,37 +19,55 @@ export default function AnalysesPage() {
     const savedFilters = sessionStorage.getItem('uph_analyses_filters')
     const savedSource = sessionStorage.getItem('uph_analyses_source')
     const savedLinePref = sessionStorage.getItem('uph_analyses_linepref')
+    const savedPage = sessionStorage.getItem('uph_analyses_page')
     
-    // First, restore source and linePref without triggering setFilters
-    if (savedSource) {
-      setSource(savedSource as 'all' | 'sz' | 'hn')
-    }
+    // Get saved values or defaults
+    const restoredSource = savedSource as 'all' | 'sz' | 'hn' || 'all'
+    const restoredLinePref = savedLinePref as 'ALL'|'A'|'B'|'C'|'D'|'E'|'F'|'O' || 'ALL'
+    const restoredPage = savedPage ? Number(savedPage) : 1
     
-    if (savedLinePref) {
-      setLinePref(savedLinePref as 'ALL'|'A'|'B'|'C'|'D'|'E'|'F'|'O')
-    }
+    // Update state with saved values
+    setSource(restoredSource)
+    setLinePref(restoredLinePref)
     
-    // Then, restore filters
+    // Parse saved filters
+    let parsedFilters: any = {};
     if (savedFilters) {
       try {
-        const parsedFilters = JSON.parse(savedFilters)
-        setFilters(parsedFilters)
+        parsedFilters = JSON.parse(savedFilters)
       } catch (e) {
         console.error('Failed to parse saved filters:', e)
       }
+    }
+    
+    // Apply source filter based on restoredSource, not current source state
+    const srcParam = restoredSource === 'all' ? undefined : (restoredSource === 'sz' ? 'sz' : 'cs')
+    
+    // Apply linePref filter based on restoredLinePref, not current linePref state
+    let linePrefix: string | undefined;
+    let lineGroup: string | undefined;
+    if (restoredLinePref === 'ALL') {
+      linePrefix = undefined;
+      lineGroup = undefined;
+    } else if (restoredLinePref === 'O') {
+      linePrefix = undefined;
+      lineGroup = 'O';
     } else {
-      // If no saved filters, just fetch the list
-      fetchList()
+      linePrefix = restoredLinePref;
+      lineGroup = undefined;
     }
-  }, [setFilters, fetchList])
+    
+    // Set all filters together
+    setFilters({ ...parsedFilters, source: srcParam, line_prefix: linePrefix, line_group: lineGroup })
+    
+    // Restore page number
+    setPage(restoredPage)
+    
+    // Fetch list with restored filters and page
+    fetchList()
+  }, [setFilters, fetchList, setPage, setSource, setLinePref])
 
-  // Restore page after filters are set (because setFilters resets page to 1)
-  useEffect(() => {
-    const savedPage = sessionStorage.getItem('uph_analyses_page')
-    if (savedPage) {
-      setPage(Number(savedPage))
-    }
-  }, [filters])
+  // No need for separate page restore since it's handled in the main mount effect
 
   // Save filters to sessionStorage when they change
   useEffect(() => {
