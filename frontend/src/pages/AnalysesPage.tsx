@@ -178,6 +178,52 @@ export default function AnalysesPage() {
             status={top3Status} 
             onPush={pushTop3} 
           />
+          
+          {/* 新增：返回首页按钮 */}
+          <button
+            onClick={() => {
+              // 现代浏览器对window.close()有严格限制，只能关闭由JavaScript打开的窗口
+              // 考虑到用户体验，我们可以提供两种选择：
+              
+              // 方式1：尝试使用不同的window.close()变体
+              const closeWindow = () => {
+                // 变体1：直接调用
+                window.close();
+                
+                // 变体2：尝试打开空白窗口并关闭
+                try {
+                  const win = window.open(window.location.href, '_self');
+                  win?.close();
+                } catch (e) {
+                  // 变体3：使用opener
+                  if (window.opener) {
+                    window.opener = null;
+                    window.close();
+                  }
+                }
+              };
+              
+              // 首先尝试关闭窗口
+              closeWindow();
+              
+              // 检查窗口是否仍然存在（200ms后）
+              setTimeout(() => {
+                // 如果窗口仍然存在，说明关闭失败，提供替代方案
+                try {
+                  // 检查窗口是否已关闭
+                  if (!window.closed) {
+                    // 替代方案：跳转到首页或显示提示
+                    alert('为了您的安全，浏览器阻止了自动关闭窗口。请点击浏览器右上角的关闭按钮关闭当前窗口返回首页。');
+                  }
+                } catch (e) {
+                  console.error('Error checking window status:', e);
+                }
+              }, 200);
+            }}
+            className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          >
+            返回首页
+          </button>
         </div>
       </div>
       {tip && (
