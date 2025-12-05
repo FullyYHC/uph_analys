@@ -64,10 +64,30 @@ export function getSyncJobStatus() {
 
 export function cancelSyncJob() {
   if (currentJob && currentJob.status === 'running') {
+    console.log(`Canceling sync job: id=${currentJob.id}`);
     currentJob.status = 'failed'
     currentJob.finishedAt = new Date().toISOString()
     currentJob.error = 'canceled by user'
     return { ok: true }
   }
   return { ok: false, reason: 'no_running_job' }
+}
+
+// 强制清理长时间运行的任务
+export function cleanupStaleJob() {
+  if (currentJob && currentJob.status === 'running') {
+    const startTime = new Date(currentJob.startedAt || 0).getTime();
+    const now = new Date().getTime();
+    const runningTime = now - startTime;
+    const maxRunningTime = DEFAULT_MAX_MS * 2; // 允许两倍默认超时时间
+    
+    if (runningTime > maxRunningTime) {
+      console.log(`Cleaning up stale sync job: id=${currentJob.id}, running time: ${runningTime}ms`);
+      currentJob.status = 'failed';
+      currentJob.finishedAt = new Date().toISOString();
+      currentJob.error = `stale job cleaned up after ${runningTime}ms`;
+      return { ok: true, job: currentJob };
+    }
+  }
+  return { ok: false, reason: 'no_stale_job' };
 }

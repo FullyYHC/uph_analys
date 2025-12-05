@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { pushTop3Data } from '../services/top3Service';
+import { cleanupStaleJob } from '../services/syncJob';
 import { startSyncJob } from '../services/syncJob';
 
 /**
@@ -32,6 +33,12 @@ export function setupScheduledTasks() {
       console.log('Running scheduled UPH system data sync task...');
       
       try {
+        // 清理长时间运行的任务
+        const cleanupResult = cleanupStaleJob();
+        if (cleanupResult.ok) {
+          console.log(`Cleanup result: ${JSON.stringify(cleanupResult.job)}`);
+        }
+        
         // 使用异步模式执行同步，避免长时间阻塞
         // 对应web页面"同步数据"功能，同步cs/sz源数据到uph_analys表
         // 设置date_from为2小时前，确保同步最近2小时的数据
@@ -51,9 +58,19 @@ export function setupScheduledTasks() {
     top3Job.start();
     uphSyncJob.start();
     
+    // 新增：每分钟检查并清理长时间运行的任务
+    const cleanupJob = cron.schedule('* * * * * *', () => {
+      const cleanupResult = cleanupStaleJob();
+      if (cleanupResult.ok) {
+        console.log(`Stale job cleanup result: ${JSON.stringify(cleanupResult.job)}`);
+      }
+    });
+    cleanupJob.start();
+    
     console.log('Scheduled tasks initialized successfully:');
     console.log('  1. TOP3 data push: daily at 9:00 AM (only syncs TOP3 data to alarm_info table)');
     console.log('  2. UPH system data sync: every 2 hours (corresponds to web page "Sync Data" function, syncs cs/sz source data to uph_analys table)');
+    console.log('  3. Stale job cleanup: every second (cleans up long-running tasks)');
   } catch (error) {
     console.error('Error initializing scheduled tasks:', error);
     throw error;
