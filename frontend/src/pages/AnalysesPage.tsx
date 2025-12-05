@@ -172,6 +172,23 @@ export default function AnalysesPage() {
             同步数据
           </button>
           
+          {/* 新增：刷新数据按钮 */}
+          <button
+            onClick={async () => {
+              try {
+                setTip({ text: '正在刷新数据…', ok: true })
+                await fetchList()
+                setTip({ text: '数据刷新成功！', ok: true })
+              } catch (e: any) {
+                const msg = e?.response?.data?.error || e?.message || '未知错误'
+                setTip({ text: `数据刷新失败！(${msg})`, ok: false })
+              }
+            }}
+            className="bg-blue-500 text-white rounded px-4 py-2 hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          >
+            刷新数据
+          </button>
+          
           {/* 新增：TOP3推送按钮 */}
           <Top3PushButton 
             loading={top3Loading} 

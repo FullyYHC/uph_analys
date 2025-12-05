@@ -19,9 +19,12 @@ function genId() {
 const DEFAULT_MAX_MS = Number(process.env.SYNC_MAX_MS || 240000)
 
 export async function startSyncJob(params: { days?: number; date_from?: string; date_to?: string; sources?: ('cs'|'sz')[]; max_ms?: number }) {
+  // 如果有正在运行的任务，取消它并启动新任务
   if (currentJob && currentJob.status === 'running') {
-    console.log(`Sync job rejected: already running (id: ${currentJob.id}, started at: ${currentJob.startedAt})`);
-    return { ok: false, reason: 'busy', job: currentJob }
+    console.log(`Canceling existing sync job: id=${currentJob.id} to start new job`);
+    currentJob.status = 'failed';
+    currentJob.finishedAt = new Date().toISOString();
+    currentJob.error = 'canceled to start new job';
   }
   const id = genId()
   currentJob = { id, status: 'running', startedAt: new Date().toISOString(), inserted: 0 }
