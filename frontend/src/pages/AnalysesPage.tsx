@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAnalysesStore } from '@/stores/analyses'
 import { analysesApi } from '@/utils/axios'
 import SourceToggle from '@/components/SourceToggle'
@@ -9,6 +10,11 @@ import Pagination from '@/components/Pagination'
 
 export default function AnalysesPage() {
   const { list, page, size, total, loading, error, fetchList, setPage, setSize, setFilters, filters } = useAnalysesStore()
+  const [searchParams] = useSearchParams()
+  const userNameParam = searchParams.get('userName')
+  // Extract Chinese name from "2020120767+梅波" -> "梅波" or "梅波" -> "梅波"
+  const chineseName = userNameParam ? (userNameParam.includes('+') ? userNameParam.split('+')[1] : userNameParam) : ''
+  
   const [tip, setTip] = useState<{ text: string; ok: boolean } | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [source, setSource] = useState<'all' | 'sz' | 'hn'>('all')
@@ -161,7 +167,7 @@ export default function AnalysesPage() {
         <div className="text-gray-500">加载中…</div>
       ) : (
         <>
-          <Table data={list} />
+          <Table data={list} chineseName={chineseName} />
           <Pagination page={page} size={size} total={total} onChange={(p) => { setPage(p); fetchList() }} onSizeChange={(s) => { setSize(s); fetchList() }} />
         </>
       )}

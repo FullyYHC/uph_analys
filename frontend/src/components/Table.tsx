@@ -1,19 +1,20 @@
-import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { UphAnalys } from '@/types/api'
 import { useAnalysesStore } from '@/stores/analyses'
 import BucketModal from '@/components/BucketModal'
+import DetailModal from '@/components/DetailModal'
 import { analysesApi } from '@/utils/axios'
 import { formatDateTime } from '@/utils/format'
 
 interface Props {
   data: UphAnalys[]
+  chineseName?: string
 }
 
-export default function Table({ data }: Props) {
-  const nav = useNavigate()
+export default function Table({ data, chineseName }: Props) {
   const { sort_by, sort_dir, setSort, fetchList, page, size, filters, diffTotal, diffDay, diffNight } = useAnalysesStore()
   const [bucket, setBucket] = useState<{ serial: number; slot: string } | null>(null)
+  const [detail, setDetail] = useState<{ serial: number } | null>(null)
   const [flags, setFlags] = useState<Record<string, { red: boolean; yellow: boolean }>>({})
   const markFlag = (serial: number, slot: string, f: { lowPct: boolean; zeroPlan: boolean }) => {
     const key = `${serial}_${slot}`
@@ -188,7 +189,7 @@ export default function Table({ data }: Props) {
               <td className={`px-4 py-2 font-bold ${sumDiffs(row)<0?'text-red-600':''}`}>{formatNum(sumDiffs(row))}</td>
               <td className="px-4 py-2">
                 <button
-                  onClick={() => nav(`/detail/${row.serial_number}`)}
+                  onClick={() => setDetail({ serial: row.serial_number })}
                   className="text-blue-600 hover:underline"
                 >
                   详情
@@ -199,6 +200,7 @@ export default function Table({ data }: Props) {
         </tbody>
       </table>
       {bucket && <BucketModal serial={bucket.serial} slot={bucket.slot} source={(filters.source as 'cs'|'sz'|undefined)} onClose={() => setBucket(null)} onFlag={(f)=> markFlag(bucket.serial, bucket.slot, f)} />}
+      {detail && <DetailModal serial={detail.serial} chineseName={chineseName} onClose={() => setDetail(null)} />}
     </div>
   )
 }
