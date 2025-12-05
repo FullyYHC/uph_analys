@@ -97,14 +97,14 @@ export default function SearchForm({ onSearch, initialFrom, initialTo }: Props) 
         step="1"
         value={dateFrom}
         onChange={(e) => setDateFrom(e.target.value)}
-        className="border rounded px-3 py-2 w-[200px]"
+        className="border rounded px-3 py-2 w-[250px]"
       />
       <input
         type="datetime-local"
         step="1"
         value={dateTo}
         onChange={(e) => setDateTo(e.target.value)}
-        className="border rounded px-3 py-2 w-[200px]"
+        className="border rounded px-3 py-2 w-[250px]"
       />
       <button type="button" onClick={handleYesterdayAchievement} className="bg-green-600 text-white rounded px-3 py-2 hover:bg-green-700 w-[100px]">
         前日达成
