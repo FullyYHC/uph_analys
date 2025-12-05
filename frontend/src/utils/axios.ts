@@ -1,7 +1,8 @@
 import axios from 'axios'
+import { AnalysesListRes, AnalysesDetailRes, UphItem, PatchBody } from '@/types/api'
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE || '/api',
+  baseURL: '/api',
   timeout: 10000
 })
 

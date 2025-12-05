@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useDetailStore } from '@/stores/detail'
 import { PatchBody } from '@/types/api'
@@ -14,9 +14,6 @@ export default function DetailPage() {
   const nav = useNavigate()
   const { analys, item, loading, error, fetchDetail, patchItem } = useDetailStore()
   const [form, setForm] = useState<PatchBody>({})
-  
-  // Track which field was focused last to know which name to update
-  const [activeField, setActiveField] = useState<'line_leader' | 'pie' | 'qc' | null>(null)
 
   useEffect(() => {
     if (serial) {
@@ -33,10 +30,6 @@ export default function DetailPage() {
       })
     }
   }, [item])
-
-  const handleInputClick = (field: 'line_leader' | 'pie' | 'qc') => {
-    setActiveField(field)
-  }
 
   const handleSave = async (field: 'line_leader' | 'pie' | 'qc') => {
     // Only update the specific field that triggered the save
@@ -96,7 +89,6 @@ export default function DetailPage() {
             </div>
             <textarea
               value={form.line_leader_item || ''}
-              onClick={() => handleInputClick('line_leader')}
               onChange={(e) => setForm({ ...form, line_leader_item: e.target.value })}
               onBlur={() => handleSave('line_leader')}
               rows={4}
@@ -111,7 +103,6 @@ export default function DetailPage() {
             </div>
             <textarea
               value={form.pie_item || ''}
-              onClick={() => handleInputClick('pie')}
               onChange={(e) => setForm({ ...form, pie_item: e.target.value })}
               onBlur={() => handleSave('pie')}
               rows={4}
@@ -126,7 +117,6 @@ export default function DetailPage() {
             </div>
             <textarea
               value={form.qc_item || ''}
-              onClick={() => handleInputClick('qc')}
               onChange={(e) => setForm({ ...form, qc_item: e.target.value })}
               onBlur={() => handleSave('qc')}
               rows={4}

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { analysesApi } from '@/utils/axios'
-import { UphAnalys, AnalysesListRes } from '@/types/api'
+import { UphAnalys } from '@/types/api'
 
 interface State {
   list: UphAnalys[]
