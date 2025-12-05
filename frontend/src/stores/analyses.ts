@@ -43,8 +43,8 @@ export const useAnalysesStore = create<State & Actions>((set, get) => ({
   diffNight: 0,
   loading: false,
   error: null,
-  sort_by: 'date_record',
-  sort_dir: 'desc',
+  sort_by: 'diffTotal',
+  sort_dir: 'asc',
   filters: (() => {
     const now = new Date()
     const from = new Date(now.getTime() - 24 * 60 * 60 * 1000)
