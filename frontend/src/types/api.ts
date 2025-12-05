@@ -50,3 +50,16 @@ export interface PatchBody {
   pie_item?: string
   qc_item?: string
 }
+
+// TOP3推送相关类型定义
+export interface Top3PushResponse {
+  success: boolean;
+  message: string;
+  count?: number;
+}
+
+export interface Top3PushStatus {
+  success: boolean;
+  message: string;
+  lastPushTime?: string;
+}

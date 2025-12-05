@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { analysesApi } from '@/utils/axios'
-import { UphAnalys } from '@/types/api'
+import { UphAnalys, Top3PushStatus } from '@/types/api'
 
 interface State {
   list: UphAnalys[]
@@ -23,6 +23,9 @@ interface State {
     line_prefix?: string
     line_group?: string
   }
+  // 新增：TOP3推送相关状态
+  top3Loading: boolean
+  top3Status: Top3PushStatus | null
 }
 
 interface Actions {
@@ -31,6 +34,9 @@ interface Actions {
   setSort: (col: string) => void
   setSize: (s: number) => void
   setFilters: (f: Partial<{ model?: string; search?: string; date_from?: string; date_to?: string; source?: string; line_prefix?: string; line_group?: string }>) => void
+  // 新增：TOP3推送相关操作
+  pushTop3: () => Promise<void>
+  getTop3Status: () => Promise<void>
 }
 
 export const useAnalysesStore = create<State & Actions>((set, get) => ({
@@ -59,6 +65,9 @@ export const useAnalysesStore = create<State & Actions>((set, get) => ({
     }
     return { date_from: fmt(from), date_to: fmt(now) }
   })(),
+  // 新增：TOP3状态初始化
+  top3Loading: false,
+  top3Status: null,
   fetchList: async (params) => {
     set({ loading: true, error: null })
     try {
@@ -93,5 +102,36 @@ export const useAnalysesStore = create<State & Actions>((set, get) => ({
     }
   },
   setSize: (s) => set({ size: s, page: 1 }),
-  setFilters: (f) => set({ filters: { ...get().filters, ...f }, page: 1 })
+  setFilters: (f) => set({ filters: { ...get().filters, ...f }, page: 1 }),
+  // 新增：TOP3推送操作
+  pushTop3: async () => {
+    set({ top3Loading: true })
+    try {
+      const { data } = await analysesApi.top3Push()
+      set({ top3Status: data, top3Loading: false })
+    } catch (e: any) {
+      set({ 
+        top3Status: { 
+          success: false, 
+          message: e.message || 'TOP3推送失败' 
+        }, 
+        top3Loading: false 
+      })
+    }
+  },
+  // 新增：获取TOP3状态操作
+  getTop3Status: async () => {
+    try {
+      const { data } = await analysesApi.top3Status()
+      set({ top3Status: data })
+    } catch (e: any) {
+      console.error('Failed to get TOP3 status:', e)
+      set({ 
+        top3Status: { 
+          success: false, 
+          message: e.message || '获取TOP3状态失败' 
+        } 
+      })
+    }
+  }
 }))

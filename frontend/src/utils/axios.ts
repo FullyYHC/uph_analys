@@ -14,6 +14,9 @@ export const analysesApi = {
   maxDates: () => api.get('/analyses/max-dates')
   ,bucket: (serial: number, slot: string, source?: 'cs'|'sz') => api.get(`/analyses/${serial}/bucket`, { params: { slot, source } })
   ,pqtyZero: (ids: number[], source: 'cs'|'sz') => api.get('/analyses/pqty-zero', { params: { ids: ids.join(','), source } })
+  // TOP3推送相关API
+  ,top3Push: () => api.post<Top3PushResponse>('/top3/push')
+  ,top3Status: () => api.get<Top3PushStatus>('/top3/status')
 }
 
 export const itemsApi = {
