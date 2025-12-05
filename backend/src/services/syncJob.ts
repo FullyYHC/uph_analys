@@ -20,16 +20,20 @@ const DEFAULT_MAX_MS = Number(process.env.SYNC_MAX_MS || 240000)
 
 export async function startSyncJob(params: { days?: number; date_from?: string; date_to?: string; sources?: ('cs'|'sz')[]; max_ms?: number }) {
   if (currentJob && currentJob.status === 'running') {
+    console.log(`Sync job rejected: already running (id: ${currentJob.id}, started at: ${currentJob.startedAt})`);
     return { ok: false, reason: 'busy', job: currentJob }
   }
   const id = genId()
   currentJob = { id, status: 'running', startedAt: new Date().toISOString(), inserted: 0 }
+  console.log(`Sync job started: id=${id}, params=${JSON.stringify(params)}`);
   const maxMs = params.max_ms && params.max_ms > 0 ? params.max_ms : DEFAULT_MAX_MS
   const timer = setTimeout(() => {
     if (currentJob && currentJob.status === 'running') {
+      console.error(`Sync job timeout: id=${id}, running for ${maxMs}ms`);
       currentJob.status = 'failed'
       currentJob.finishedAt = new Date().toISOString()
       currentJob.error = `sync timeout after ${maxMs}ms`
+      console.log(`Sync job failed: id=${id}, error=${currentJob.error}`);
     }
   }, maxMs)
   ;(async () => {
@@ -41,12 +45,14 @@ export async function startSyncJob(params: { days?: number; date_from?: string; 
       currentJob.inserted = result.inserted
       currentJob.range = result.range
       clearTimeout(timer)
+      console.log(`Scheduled UPH system data sync completed: inserted ${result.inserted} records, range: ${result.range.from} to ${result.range.to}`)
     } catch (e: any) {
       if (!currentJob) return
       currentJob.status = 'failed'
       currentJob.finishedAt = new Date().toISOString()
       currentJob.error = e?.message || String(e)
       clearTimeout(timer)
+      console.error(`Scheduled UPH system data sync failed: ${currentJob.error}`)
     }
   })()
   return { ok: true, job: currentJob }

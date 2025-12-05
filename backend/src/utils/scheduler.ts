@@ -34,7 +34,14 @@ export function setupScheduledTasks() {
       try {
         // 使用异步模式执行同步，避免长时间阻塞
         // 对应web页面"同步数据"功能，同步cs/sz源数据到uph_analys表
-        const result = await startSyncJob({ sources: ['cs', 'sz'], days: 7 });
+        // 设置date_from为2小时前，确保同步最近2小时的数据
+        const twoHoursAgo = new Date();
+        twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
+        const result = await startSyncJob({ 
+          sources: ['cs', 'sz'], 
+          date_from: twoHoursAgo.toISOString().slice(0, 19).replace('T', ' '),
+          days: 7 
+        });
         console.log('Scheduled UPH system data sync job started:', result);
       } catch (error) {
         console.error('Error in scheduled UPH system data sync:', error);
