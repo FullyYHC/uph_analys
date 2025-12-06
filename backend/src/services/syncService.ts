@@ -49,11 +49,13 @@ function computeDiff(twoHours: QtyRow[]) {
   return diff
 }
 
-export async function syncFromMaclib(opts: SyncOptions = {}) {
+export async function syncFromMaclib(opts: SyncOptions & { forceDays?: boolean } = {}) {
   const wantSources = (opts.sources && opts.sources.length) ? opts.sources : ['cs', 'sz']
   const sources = wantSources.map(s => s === 'cs' ? { tag: 'cs', pool: csPool } : { tag: 'sz', pool: szPool })
   let inserted = 0
+  let updated = 0
   const insertedBy: Record<string, number> = {}
+  const updatedBy: Record<string, number> = {}
   const now = new Date()
   let to = opts.date_to ? new Date(opts.date_to) : now
   // use max FUpdateDate across CS & SZ if date_to not provided
@@ -73,30 +75,63 @@ export async function syncFromMaclib(opts: SyncOptions = {}) {
   let from = opts.date_from ? new Date(opts.date_from) : new Date(to)
   const days = opts.days ?? 7
   if (!opts.date_from) {
-    // incremental from latest date_record in pm
-    try {
-      const [pmMaxRows] = await pmPool.query<RowDataPacket[]>('SELECT MAX(date_record) AS maxDate FROM uph_analys')
-      if (pmMaxRows?.[0]?.maxDate) {
-        from = new Date(pmMaxRows[0].maxDate as any)
-      } else {
-        from.setDate(to.getDate() - days)
-      }
-    } catch {
+    // 强制使用指定天数，不使用增量同步
+    if (opts.forceDays) {
       from.setDate(to.getDate() - days)
+      console.log(`[SYNC] Using forced time range: ${days} days from ${to}`)
+    } else {
+      // incremental from latest date_record in pm
+      try {
+        const [pmMaxRows] = await pmPool.query<RowDataPacket[]>('SELECT MAX(date_record) AS maxDate FROM uph_analys')
+        if (pmMaxRows?.[0]?.maxDate) {
+          from = new Date(pmMaxRows[0].maxDate as any)
+          console.log(`[SYNC] Using incremental sync from latest record: ${from}`)
+        } else {
+          from.setDate(to.getDate() - days)
+          console.log(`[SYNC] No latest record found, using ${days} days from ${to}`)
+        }
+      } catch {
+        from.setDate(to.getDate() - days)
+        console.log(`[SYNC] Query failed, using ${days} days from ${to}`)
+      }
     }
   }
   // Use passed strings directly if available to preserve precision, otherwise format Date objects
   const fromStr = opts.date_from ? normalizeFrom(opts.date_from) : normalizeFrom(toDateTimeString(from))
   const toStr = opts.date_to ? normalizeTo(opts.date_to) : normalizeTo(toDateTimeString(to))
+  
+  console.log(`[SYNC] Starting data sync with params:`, {
+    sources: wantSources,
+    timeRange: { from: fromStr, to: toStr },
+    days: days
+  })
+  
   for (const { tag, pool: src } of sources) {
     insertedBy[tag] = 0
+    updatedBy[tag] = 0
+    
+    console.log(`[SYNC-${tag}] Processing source...`)
+    
+    // 1. 获取时间范围内的所有计划（新增+已存在）
     const [plansRows] = await src.query('SELECT ID, Model, Qty, FUpdateDate, LineID FROM maclib.mes_plan WHERE FUpdateDate > ? AND FUpdateDate <= ? ORDER BY FUpdateDate ASC', [fromStr, toStr])
-    const plans = plansRows as RowDataPacket[] as PlanRow[]
-    for (const plan of plans) {
+    const allPlans = plansRows as RowDataPacket[] as PlanRow[]
+    
+    console.log(`[SYNC-${tag}] Found ${allPlans.length} plans in time range: ${fromStr} to ${toStr}`)
+    
+    // 2. 处理每个计划
+    for (const plan of allPlans) {
+      // 检查计划是否已存在
+      const [existingRow] = await pmPool.query<RowDataPacket[]>('SELECT 1 FROM uph_analys WHERE serial_number = ? AND data_source = ?', [plan.ID, tag])
+      const isExisting = existingRow.length > 0
+      
+      // 获取最新的数量数据
       const [qtyRowsRaw] = await src.query('SELECT ID, PID, PQty, MQty, AQty FROM maclib.mes_hqty2 WHERE PID = ? ORDER BY ID ASC', [plan.ID])
       const qtyRows = qtyRowsRaw as RowDataPacket[] as QtyRow[]
+      
+      // 计算差异
       const buckets = bucketPairs().map(pair => qtyRows.filter(q => q.ID === pair[0] || q.ID === pair[1]))
       const diffs = buckets.map(b => b.length ? computeDiff(b as QtyRow[]) : 0)
+      
       let lineName: string | null = null
       let lineModel: string | null = null
       try {
@@ -106,7 +141,9 @@ export async function syncFromMaclib(opts: SyncOptions = {}) {
           lineModel = li?.lineModel ?? null
           lineName = li?.lineName ?? null
         }
-      } catch {}
+      } catch {
+        console.warn(`[SYNC-${tag}] Failed to get line info for plan ${plan.ID}`)
+      }
 
       const payload = {
         serial_number: plan.ID,
@@ -128,6 +165,10 @@ export async function syncFromMaclib(opts: SyncOptions = {}) {
         diff_cnt_4_6: diffs[10] ?? 0,
         diff_cnt_6_8: diffs[11] ?? 0
       }
+      
+      // 统计有差异的时间段数量
+      const diffCount = diffs.filter(d => d !== 0).length;
+      
       try {
         await pmPool.query(
           `INSERT INTO uph_analys (
@@ -162,6 +203,16 @@ export async function syncFromMaclib(opts: SyncOptions = {}) {
           payload.diff_cnt_16_18, payload.diff_cnt_18_20, payload.diff_cnt_20_22, payload.diff_cnt_22_24,
           payload.diff_cnt_24_2, payload.diff_cnt_2_4, payload.diff_cnt_4_6, payload.diff_cnt_6_8
         ])
+        
+        if (isExisting) {
+          updated++
+          updatedBy[tag]++
+          console.log(`[SYNC-${tag}] ✅ 成功更新计划 ${plan.ID} - ${diffCount}个时间段有差异`)
+        } else {
+          inserted++
+          insertedBy[tag]++
+          console.log(`[SYNC-${tag}] ✅ 成功插入新计划 ${plan.ID}`)
+        }
       } catch (err: any) {
         if (err && err.code === 'ER_DUP_ENTRY') {
           await pmPool.query(
@@ -178,13 +229,45 @@ export async function syncFromMaclib(opts: SyncOptions = {}) {
               payload.diff_cnt_24_2, payload.diff_cnt_2_4, payload.diff_cnt_4_6, payload.diff_cnt_6_8
             ]
           )
+          
+          if (isExisting) {
+            updated++
+            updatedBy[tag]++
+            console.log(`[SYNC-${tag}] ✅ 成功替换计划 ${plan.ID} - ${diffCount}个时间段有差异`)
+          } else {
+            inserted++
+            insertedBy[tag]++
+            console.log(`[SYNC-${tag}] ✅ 成功插入新计划 ${plan.ID} (REPLACE)`)
+          }
         } else {
+          console.error(`[SYNC-${tag}] ❌ 处理计划 ${plan.ID}失败:`, err.message || err)
           throw err
         }
       }
-      inserted++
-      insertedBy[tag]++
     }
+    
+    console.log(`[SYNC-${tag}] Completed processing: ${insertedBy[tag]} inserted, ${updatedBy[tag]} updated`)
   }
-  return { ok: true, inserted, insertedBy, range: { from: fromStr, to: toStr }, sources: wantSources }
+  
+  const totalProcessed = inserted + updated
+  console.log(`[SYNC] Data sync completed:`, {
+    inserted: inserted,
+    updated: updated,
+    totalProcessed: totalProcessed,
+    insertedBy: insertedBy,
+    updatedBy: updatedBy,
+    range: { from: fromStr, to: toStr },
+    sources: wantSources
+  })
+  
+  return { 
+    ok: true, 
+    inserted, 
+    updated, 
+    totalProcessed, 
+    insertedBy, 
+    updatedBy, 
+    range: { from: fromStr, to: toStr }, 
+    sources: wantSources 
+  }
 }

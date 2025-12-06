@@ -20,7 +20,7 @@ function sumQty(rows: any[]) {
 async function fetchSource(pool: any, pid: number, slot: string) {
   const pair = slots[slot]
   if (!pair) return { source: '', slot, items: [], summary: null }
-  const [rows] = await pool.query<RowDataPacket[]>('SELECT ID, PID, PQty, MQty, AQty FROM maclib.mes_hqty2 WHERE PID = ? AND ID IN (?,?) ORDER BY ID ASC', [pid, pair[0], pair[1]])
+  const [rows] = await pool.query('SELECT ID, PID, PQty, MQty, AQty FROM maclib.mes_hqty2 WHERE PID = ? AND ID IN (?,?) ORDER BY ID ASC', [pid, pair[0], pair[1]])
   const items = (rows as any[]).map(r => ({ ID: r.ID, PQty: r.PQty, MQty: r.MQty, AQty: r.AQty }))
   const summary = sumQty(rows as any[])
   return { items, summary }

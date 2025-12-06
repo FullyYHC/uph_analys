@@ -43,7 +43,9 @@ export async function patchItem(req: Request, res: Response, next: NextFunction)
     res.json(data)
   } catch (err) {
     console.error('Patch Error:', err)
-    console.error('Error stack:', err.stack)
+    if (err instanceof Error) {
+      console.error('Error stack:', err.stack)
+    }
     next(err)
   }
 }

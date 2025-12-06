@@ -76,9 +76,13 @@ export async function runSync(req: Request, res: Response, next: NextFunction) {
 
 export async function getMaxDates(_req: Request, res: Response, next: NextFunction) {
   try {
-    const [[csMax]] = await csPool.query('SELECT MAX(FUpdateDate) as maxDate FROM maclib.mes_plan')
-    const [[szMax]] = await szPool.query('SELECT MAX(FUpdateDate) as maxDate FROM maclib.mes_plan')
-    const [[pmMax]] = await pmPool.query('SELECT MAX(date_record) as maxDate FROM uph_analys')
+    // 使用精确的类型断言，将查询结果断言为 [RowDataPacket[], any] 类型
+    const [csRows] = await csPool.query('SELECT MAX(FUpdateDate) as maxDate FROM maclib.mes_plan') as unknown as [any[], any]
+    const [szRows] = await szPool.query('SELECT MAX(FUpdateDate) as maxDate FROM maclib.mes_plan') as unknown as [any[], any]
+    const [pmRows] = await pmPool.query('SELECT MAX(date_record) as maxDate FROM uph_analys') as unknown as [any[], any]
+    const csMax = csRows[0]
+    const szMax = szRows[0]
+    const pmMax = pmRows[0]
     res.json({ cs: csMax?.maxDate || null, sz: szMax?.maxDate || null, pm: pmMax?.maxDate || null })
   } catch (err) {
     next(err)

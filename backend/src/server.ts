@@ -19,11 +19,15 @@ app.use('/api/top3', top3Router) // 新增：注册TOP3路由
 app.use(errorHandler)
 
 const port = process.env.PORT ? Number(process.env.PORT) : 6000
+console.log('=== Starting ensureSchema()... ===')
 ensureSchema().then(() => {
+  console.log('=== ensureSchema() completed successfully ===')
   // 新增：在确保数据库模式后初始化定时任务
+  console.log('=== Calling setupScheduledTasks()... ===')
   setupScheduledTasks()
-}).catch(() => {
-  console.error('Failed to ensure schema, but continuing with scheduled tasks setup')
+}).catch((error) => {
+  console.error('=== Failed to ensure schema:', error)
+  console.error('=== Continuing with scheduled tasks setup anyway ===')
   setupScheduledTasks() // 即使schema确保失败，也尝试初始化定时任务
 })
 app.listen(port, () => {

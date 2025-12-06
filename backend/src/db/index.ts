@@ -1,13 +1,24 @@
 import mysql from 'mysql2/promise'
 
+// 数据库连接池配置选项
+const poolOptions = {
+  connectionLimit: 10,              // 最大连接数
+  waitForConnections: true,         // 当连接池满时等待获取连接
+  queueLimit: 20,                   // 连接请求队列大小，避免内存溢出
+  idleTimeout: 30000,               // 空闲连接超时时间，30秒
+  enableKeepAlive: true,            // 启用TCP keep-alive
+  keepAliveInitialDelay: 60000,     // TCP keep-alive初始延迟时间，60秒
+  dateStrings: true,                // 将日期转换为字符串
+  connectTimeout: 10000             // 连接建立超时10秒
+}
+
 export const pmPool = mysql.createPool({
   host: process.env.PM_HOST,
   port: Number(process.env.PM_PORT || 3306),
   user: process.env.PM_USER,
   password: process.env.PM_PASSWORD,
   database: process.env.PM_DATABASE,
-  connectionLimit: 10,
-  dateStrings: true
+  ...poolOptions
 })
 
 export const csPool = mysql.createPool({
@@ -16,8 +27,7 @@ export const csPool = mysql.createPool({
   user: process.env.CS_USER,
   password: process.env.CS_PASSWORD,
   database: process.env.CS_DATABASE,
-  connectionLimit: 10,
-  dateStrings: true
+  ...poolOptions
 })
 
 export const szPool = mysql.createPool({
@@ -26,8 +36,7 @@ export const szPool = mysql.createPool({
   user: process.env.SZ_USER,
   password: process.env.SZ_PASSWORD,
   database: process.env.SZ_DATABASE,
-  connectionLimit: 10,
-  dateStrings: true
+  ...poolOptions
 })
 
 export async function ensureSchema() {
