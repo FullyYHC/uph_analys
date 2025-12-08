@@ -75,8 +75,11 @@ export async function syncFromMaclib(opts: SyncOptions & { forceDays?: boolean }
   let from = opts.date_from ? new Date(opts.date_from) : new Date(to)
   const days = opts.days ?? 3
   if (!opts.date_from) {
-    // 强制使用指定天数，不使用增量同步
-    if (opts.forceDays) {
+    // 手工同步默认使用强制天数同步，确保同步完整的天数范围
+    // 自动同步仍使用增量同步，减少同步数据量
+    const isManualSync = !opts.forceDays && !opts.date_to;
+    
+    if (opts.forceDays || isManualSync) {
       from.setDate(to.getDate() - days)
       console.log(`[SYNC] Using forced time range: ${days} days from ${to}`)
     } else {
