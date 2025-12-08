@@ -79,8 +79,13 @@ export async function syncFromMaclib(opts: SyncOptions & { forceDays?: boolean }
     // 自动同步仍使用增量同步，减少同步数据量
     const isManualSync = !opts.forceDays && !opts.date_to;
     
+    // 对于手工同步，总是使用强制天数同步，确保更新所有相关计划的差异数据
+    // 解决类似44541计划差异数据没有更新的问题
     if (opts.forceDays || isManualSync) {
-      from.setDate(to.getDate() - days)
+      // 确保 from 是 days 天前的日期，而不是同一时间
+      from = new Date(to);
+      from.setDate(from.getDate() - days);
+      from.setHours(0, 0, 0, 0); // 设置为当天开始
       console.log(`[SYNC] Using forced time range: ${days} days from ${to}`)
     } else {
       // incremental from latest date_record in pm
@@ -90,11 +95,17 @@ export async function syncFromMaclib(opts: SyncOptions & { forceDays?: boolean }
           from = new Date(pmMaxRows[0].maxDate as any)
           console.log(`[SYNC] Using incremental sync from latest record: ${from}`)
         } else {
-          from.setDate(to.getDate() - days)
+          // 确保 from 是 days 天前的日期
+          from = new Date(to);
+          from.setDate(from.getDate() - days);
+          from.setHours(0, 0, 0, 0); // 设置为当天开始
           console.log(`[SYNC] No latest record found, using ${days} days from ${to}`)
         }
       } catch {
-        from.setDate(to.getDate() - days)
+        // 确保 from 是 days 天前的日期
+        from = new Date(to);
+        from.setDate(from.getDate() - days);
+        from.setHours(0, 0, 0, 0); // 设置为当天开始
         console.log(`[SYNC] Query failed, using ${days} days from ${to}`)
       }
     }
@@ -115,11 +126,44 @@ export async function syncFromMaclib(opts: SyncOptions & { forceDays?: boolean }
     
     console.log(`[SYNC-${tag}] Processing source...`)
     
-    // 1. 获取时间范围内的所有计划（新增+已存在）
-    const [plansRows] = await src.query('SELECT ID, Model, Qty, FUpdateDate, LineID FROM maclib.mes_plan WHERE FUpdateDate > ? AND FUpdateDate <= ? ORDER BY FUpdateDate ASC', [fromStr, toStr])
-    const allPlans = plansRows as RowDataPacket[] as PlanRow[]
+    // 获取时间范围内创建的计划
+    const [newPlansRows] = await src.query(
+      `SELECT ID, Model, Qty, FUpdateDate, LineID 
+       FROM maclib.mes_plan 
+       WHERE FUpdateDate >= ? AND FUpdateDate <= ? 
+       ORDER BY FUpdateDate ASC`,
+      [fromStr, toStr]
+    );
+    const newPlans = newPlansRows as RowDataPacket[] as PlanRow[];
     
-    console.log(`[SYNC-${tag}] Found ${allPlans.length} plans in time range: ${fromStr} to ${toStr}`)
+    // 获取已存在但需要更新差异数据的计划
+    // 方案：获取最近7天创建的所有计划，确保它们的差异数据是最新的
+    // 这样可以解决前一日计划在今日产生差异的问题，同时避免过多冗余查询
+    const [existingPlansRows] = await src.query(
+      `SELECT ID, Model, Qty, FUpdateDate, LineID 
+       FROM maclib.mes_plan 
+       WHERE FUpdateDate >= DATE_SUB(NOW(), INTERVAL 7 DAY) 
+       ORDER BY FUpdateDate ASC`
+    );
+    const existingPlans = existingPlansRows as RowDataPacket[] as PlanRow[];
+    
+    // 合并所有需要处理的计划，并去重（按ID）
+    const allPlansMap = new Map<number, PlanRow>();
+    
+    // 首先添加已存在的计划，确保它们的差异数据会被更新
+    // 解决类似44541计划差异数据没有更新的问题
+    for (const plan of existingPlans) {
+      allPlansMap.set(plan.ID, plan);
+    }
+    
+    // 然后添加新计划，确保它们也会被处理
+    for (const plan of newPlans) {
+      allPlansMap.set(plan.ID, plan);
+    }
+    
+    const allPlans = Array.from(allPlansMap.values());
+    
+    console.log(`[SYNC-${tag}] Found ${allPlans.length} plans to process: ${newPlans.length} new plans, ${existingPlans.length} existing plans to update diffs`)
     
     // 2. 处理每个计划
     for (const plan of allPlans) {
