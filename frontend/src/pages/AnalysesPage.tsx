@@ -31,10 +31,24 @@ export default function AnalysesPage() {
   const [source, setSource] = useState<'all' | 'sz' | 'hn'>('all')
   const [linePref, setLinePref] = useState<'ALL'|'A'|'B'|'C'|'D'|'E'|'F'|'O'>('ALL')
 
+  // 页面加载和分页/过滤变化时，只刷新列表数据
   useEffect(() => {
     fetchList()
+  }, [page, filters, fetchList])
+
+  // 独立的TOP3状态请求逻辑
+  useEffect(() => {
+    // 初始加载时请求一次
     getTop3Status()
-  }, [page, filters])
+    
+    // 设置每小时更新一次状态
+    const intervalId = setInterval(() => {
+      getTop3Status()
+    }, 60 * 60 * 1000) // 3600000毫秒 = 1小时
+    
+    // 清理定时器
+    return () => clearInterval(intervalId)
+  }, [getTop3Status])
 
   const handleSearch = (params: Record<string, any>) => {
     const srcParam = source === 'all' ? undefined : (source === 'sz' ? 'sz' : 'cs')
