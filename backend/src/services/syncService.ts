@@ -73,7 +73,7 @@ export async function syncFromMaclib(opts: SyncOptions & { forceDays?: boolean }
     }
   }
   let from = opts.date_from ? new Date(opts.date_from) : new Date(to)
-  const days = opts.days ?? 7
+  const days = opts.days ?? 3
   if (!opts.date_from) {
     // 强制使用指定天数，不使用增量同步
     if (opts.forceDays) {
