@@ -216,6 +216,41 @@ export async function syncFromMaclib(opts: SyncOptions & { forceDays?: boolean }
       // 统计有差异的时间段数量
       const diffCount = diffs.filter(d => d !== 0).length;
       
+      // 优化：只有当差异数据有变化时才写入，避免重复写入相同数据
+      let shouldWrite = true;
+      
+      if (isExisting) {
+        // 查询现有记录的差异数据
+        const [existingDiffsRow] = await pmPool.query<RowDataPacket[]>(
+          `SELECT 
+            diff_cnt_8_10, diff_cnt_10_12, diff_cnt_12_14, diff_cnt_14_16,
+            diff_cnt_16_18, diff_cnt_18_20, diff_cnt_20_22, diff_cnt_22_24,
+            diff_cnt_24_2, diff_cnt_2_4, diff_cnt_4_6, diff_cnt_6_8
+          FROM uph_analys 
+          WHERE serial_number = ? AND data_source = ?`,
+          [plan.ID, tag]
+        );
+        
+        if (existingDiffsRow.length > 0) {
+          const existingDiffs = existingDiffsRow[0];
+          
+          // 比较现有差异数据和新计算的差异数据
+          const existingDiffsArray = [
+            existingDiffs.diff_cnt_8_10, existingDiffs.diff_cnt_10_12, existingDiffs.diff_cnt_12_14, existingDiffs.diff_cnt_14_16,
+            existingDiffs.diff_cnt_16_18, existingDiffs.diff_cnt_18_20, existingDiffs.diff_cnt_20_22, existingDiffs.diff_cnt_22_24,
+            existingDiffs.diff_cnt_24_2, existingDiffs.diff_cnt_2_4, existingDiffs.diff_cnt_4_6, existingDiffs.diff_cnt_6_8
+          ];
+          
+          // 检查差异是否一致
+          shouldWrite = !diffs.every((diff, index) => diff === existingDiffsArray[index]);
+          
+          if (!shouldWrite) {
+            console.log(`[SYNC-${tag}] ⏭️  跳过计划 ${plan.ID} - 差异数据未变化`);
+            continue;
+          }
+        }
+      }
+      
       try {
         await pmPool.query(
           `INSERT INTO uph_analys (
