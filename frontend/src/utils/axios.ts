@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { AnalysesListRes, AnalysesDetailRes, UphItem, PatchBody } from '@/types/api'
+import { AnalysesListRes, AnalysesDetailRes, UphItem, PatchBody, Top3PushResponse, Top3PushStatus } from '@/types/api'
 
 export const api = axios.create({
   baseURL: '/api',

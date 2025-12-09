@@ -51,14 +51,30 @@ export async function fetchTop3Data(): Promise<Top3DataItem[]> {
   try {
     // 计算时间范围：前一日01:00:00至当日01:00:00
     const now = new Date();
+    
+    // 当日凌晨1:00:00
     const today = new Date(now);
     today.setHours(1, 0, 0, 0);
     
+    // 前一日凌晨1:00:00
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     
-    const yesterdayStr = yesterday.toISOString().slice(0, 19).replace('T', ' ');
-    const todayStr = today.toISOString().slice(0, 19).replace('T', ' ');
+    // 转换为SQL需要的字符串格式
+    const formatDate = (date: Date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      const h = String(date.getHours()).padStart(2, '0');
+      const min = String(date.getMinutes()).padStart(2, '0');
+      const s = String(date.getSeconds()).padStart(2, '0');
+      return `${y}-${m}-${d} ${h}:${min}:${s}`;
+    };
+    
+    const yesterdayStr = formatDate(yesterday);
+    const todayStr = formatDate(today);
+    
+    console.log(`Fetching TOP3 data for time range: ${yesterdayStr} to ${todayStr}`);
     
     // 查询符合条件的数据，只取负数差异的记录
     const [rows] = await pmPool.query(
@@ -167,9 +183,14 @@ export async function syncToAlarmInfo(top3Data: Top3DataItem[]): Promise<number>
  */
 export async function pushTop3Data(): Promise<{ success: boolean; message: string; count?: number }> {
   try {
+    console.log('Starting TOP3 data push...');
+    
     // 检查当天是否已推送
     const hasPushed = await checkTodayPush();
+    console.log(`Today push status: ${hasPushed}`);
+    
     if (hasPushed) {
+      console.log('TOP3 data already pushed today, skipping...');
       return {
         success: false,
         message: '当天数据已经推送、无需重复推送！'
@@ -177,8 +198,12 @@ export async function pushTop3Data(): Promise<{ success: boolean; message: strin
     }
     
     // 获取TOP3数据
+    console.log('Fetching TOP3 data...');
     const top3Data = await fetchTop3Data();
+    console.log(`Found ${top3Data.length} TOP3 data items`);
+    
     if (!top3Data.length) {
+      console.log('No TOP3 data found, skipping push...');
       return {
         success: true,
         message: '没有找到符合条件的TOP3差异数据'
@@ -186,7 +211,9 @@ export async function pushTop3Data(): Promise<{ success: boolean; message: strin
     }
     
     // 同步到alarm_info表
+    console.log('Syncing TOP3 data to alarm_info table...');
     const count = await syncToAlarmInfo(top3Data);
+    console.log(`TOP3 data sync completed, pushed ${count} records`);
     
     return {
       success: true,

@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { pushTop3Data } from '../services/top3Service';
+import { pushTop3Data, checkTodayPush } from '../services/top3Service';
 import { startSyncJob } from '../services/syncJob';
 import { syncFromMaclib } from '../services/syncService';
 
@@ -11,6 +11,26 @@ import { syncFromMaclib } from '../services/syncService';
 export function setupScheduledTasks() {
   try {
     console.log('Initializing scheduled tasks...');
+    
+    // 立即执行一次TOP3数据推送检查
+    // 确保程序启动时，如果当天还没有推送TOP3数据，立即执行推送
+    (async () => {
+      console.log('Checking TOP3 data push status at startup...');
+      try {
+        const hasPushed = await checkTodayPush();
+        console.log(`TOP3 data push status at startup: ${hasPushed}`);
+        
+        if (!hasPushed) {
+          console.log('Running immediate TOP3 data push task at startup...');
+          const result = await pushTop3Data();
+          console.log('Immediate TOP3 data push completed:', result);
+        } else {
+          console.log('TOP3 data already pushed today, skipping immediate push...');
+        }
+      } catch (error) {
+        console.error('Error in immediate TOP3 data push check:', error);
+      }
+    })();
     
     // 1. 每日上午9:00:00执行TOP3数据推送任务
     // 仅同步TOP3数据到alarm_info表
