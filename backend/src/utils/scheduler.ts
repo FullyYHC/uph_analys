@@ -70,7 +70,7 @@ export function setupScheduledTasks() {
       currentSyncPromise = (async () => {
         try {
           // 使用与手工同步相同的参数，但限制同步天数为1天，减少单次同步的数据量
-          const syncParams = { sources: ['cs', 'sz'], days: 1, forceDays: true };
+          const syncParams = { sources: ['cs', 'sz'] as ("cs" | "sz")[], days: 1, forceDays: true };
           
           console.log('Running scheduled UPH system data sync task...');
           

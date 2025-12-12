@@ -38,7 +38,7 @@ function bucketPairs() {
   ]
 }
 
-type PlanRow = { ID: number; Model: string; Qty: number; FUpdateDate: string; LineID?: number }
+type PlanRow = { ID: number; Model: string; Qty: number; FDate: string; LineID?: number }
 type QtyRow = { ID: number; PID: number; PQty: number; MQty: number | null; AQty: number | null }
 
 function computeDiff(twoHours: QtyRow[]) {
@@ -128,10 +128,10 @@ export async function syncFromMaclib(opts: SyncOptions & { forceDays?: boolean }
     
     // 获取时间范围内创建的计划
     const [newPlansRows] = await src.query(
-      `SELECT ID, Model, Qty, FUpdateDate, LineID 
+      `SELECT ID, Model, Qty, FDate, LineID 
        FROM maclib.mes_plan 
-       WHERE FUpdateDate >= ? AND FUpdateDate <= ? 
-       ORDER BY FUpdateDate ASC`,
+       WHERE FDate >= ? AND FDate <= ? 
+       ORDER BY FDate ASC`,
       [fromStr, toStr]
     );
     const newPlans = newPlansRows as RowDataPacket[] as PlanRow[];
@@ -140,10 +140,10 @@ export async function syncFromMaclib(opts: SyncOptions & { forceDays?: boolean }
     // 方案：获取最近7天创建的所有计划，确保它们的差异数据是最新的
     // 这样可以解决前一日计划在今日产生差异的问题，同时避免过多冗余查询
     const [existingPlansRows] = await src.query(
-      `SELECT ID, Model, Qty, FUpdateDate, LineID 
+      `SELECT ID, Model, Qty, FDate, LineID 
        FROM maclib.mes_plan 
-       WHERE FUpdateDate >= DATE_SUB(NOW(), INTERVAL 7 DAY) 
-       ORDER BY FUpdateDate ASC`
+       WHERE FDate >= DATE_SUB(NOW(), INTERVAL 7 DAY) 
+       ORDER BY FDate ASC`
     );
     const existingPlans = existingPlansRows as RowDataPacket[] as PlanRow[];
     
@@ -198,7 +198,7 @@ export async function syncFromMaclib(opts: SyncOptions & { forceDays?: boolean }
         data_source: tag,
         lineName: lineName ?? null,
         lineModel: lineModel ?? null,
-        date_record: plan.FUpdateDate,
+        date_record: plan.FDate, // 将FDate字段映射到date_record字段
         diff_cnt_8_10: diffs[0] ?? 0,
         diff_cnt_10_12: diffs[1] ?? 0,
         diff_cnt_12_14: diffs[2] ?? 0,
