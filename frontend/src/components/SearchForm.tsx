@@ -8,8 +8,9 @@ interface Props {
 
 function toInputVal(s?: string) {
   if (!s) return ''
-  const t = s.replace(' ', 'T')
-  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(t) ? t : ''
+  // 只保留日期部分，去掉时间
+  const dateOnly = s.split(' ')[0]
+  return dateOnly
 }
 
 export default function SearchForm({ onSearch, initialFrom, initialTo }: Props) {
@@ -34,46 +35,47 @@ export default function SearchForm({ onSearch, initialFrom, initialTo }: Props) 
     }
   }, [search, dateFrom, dateTo])
 
-  // 初始化输入框为父组件提供的默认值
+  // 初始化输入框为父组件提供的默认值或当前日期
   useEffect(() => {
-    if (initialFrom || initialTo) {
-      setDateFrom((prev) => prev || toInputVal(initialFrom))
-      setDateTo((prev) => prev || toInputVal(initialTo))
-    }
+    // 获取当前日期，格式为 YYYY-MM-DD
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    const todayStr = `${year}-${month}-${day}`
+
+    // 如果有初始值，使用初始值；否则使用当前日期
+    const fromDate = initialFrom ? toInputVal(initialFrom) : todayStr
+    const toDate = initialTo ? toInputVal(initialTo) : todayStr
+
+    setDateFrom(fromDate)
+    setDateTo(toDate)
+    
+    // 初始加载时触发一次搜索
+    onSearch({ search, date_from: fromDate, date_to: toDate })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 前日达成按钮功能：设置开始时间为前一日凌晨01:00:00，结束时间为当日凌晨01:00:00
+  // 前日达成按钮功能：设置开始和结束日期都为前一日
   const handleYesterdayAchievement = () => {
     const now = new Date()
     const yesterday = new Date(now)
     yesterday.setDate(yesterday.getDate() - 1)
     
-    // 设置开始时间：前一日凌晨01:00:00
-    const fromDate = new Date(yesterday)
-    fromDate.setHours(1, 0, 0, 0)
-    
-    // 设置结束时间：当日凌晨01:00:00
-    const toDate = new Date(now)
-    toDate.setHours(1, 0, 0, 0)
-    
-    // 格式化日期为datetime-local输入框格式（YYYY-MM-DDTHH:mm:ss）
+    // 格式化日期为date输入框格式（YYYY-MM-DD）
     const formatDate = (date: Date) => {
       const year = date.getFullYear()
       const month = String(date.getMonth() + 1).padStart(2, '0')
       const day = String(date.getDate()).padStart(2, '0')
-      const hours = String(date.getHours()).padStart(2, '0')
-      const minutes = String(date.getMinutes()).padStart(2, '0')
-      const seconds = String(date.getSeconds()).padStart(2, '0')
-      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
+      return `${year}-${month}-${day}`
     }
     
-    const fromStr = formatDate(fromDate)
-    const toStr = formatDate(toDate)
+    const yesterdayStr = formatDate(yesterday)
     
-    setDateFrom(fromStr)
-    setDateTo(toStr)
-    onSearch({ search, date_from: fromStr, date_to: toStr })
+    // 开始和结束日期都设置为前一天
+    setDateFrom(yesterdayStr)
+    setDateTo(yesterdayStr)
+    onSearch({ search, date_from: yesterdayStr, date_to: yesterdayStr })
   }
 
   // 清除筛选按钮功能：恢复默认状态
@@ -93,18 +95,16 @@ export default function SearchForm({ onSearch, initialFrom, initialTo }: Props) 
         className="border rounded px-3 py-2 w-[300px]"
       />
       <input
-        type="datetime-local"
-        step="1"
+        type="date"
         value={dateFrom}
         onChange={(e) => setDateFrom(e.target.value)}
-        className="border rounded px-3 py-2 w-[250px]"
+        className="border rounded px-3 py-2 w-[180px]"
       />
       <input
-        type="datetime-local"
-        step="1"
+        type="date"
         value={dateTo}
         onChange={(e) => setDateTo(e.target.value)}
-        className="border rounded px-3 py-2 w-[250px]"
+        className="border rounded px-3 py-2 w-[180px]"
       />
       <button type="button" onClick={handleYesterdayAchievement} className="bg-green-600 text-white rounded px-3 py-2 hover:bg-green-700 w-[100px]">
         前日达成

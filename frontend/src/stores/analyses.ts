@@ -53,17 +53,16 @@ export const useAnalysesStore = create<State & Actions>((set, get) => ({
   sort_dir: 'asc',
   filters: (() => {
     const now = new Date()
-    const from = new Date(now.getTime() - 24 * 60 * 60 * 1000)
     const fmt = (d: Date) => {
       const y = d.getFullYear()
       const m = String(d.getMonth() + 1).padStart(2, '0')
       const day = String(d.getDate()).padStart(2, '0')
-      const hh = String(d.getHours()).padStart(2, '0')
-      const mm = String(d.getMinutes()).padStart(2, '0')
-      const ss = String(d.getSeconds()).padStart(2, '0')
-      return `${y}-${m}-${day} ${hh}:${mm}:${ss}`
+      // 只返回日期部分，格式为 YYYY-MM-DD
+      return `${y}-${m}-${day}`
     }
-    return { date_from: fmt(from), date_to: fmt(now) }
+    // 开始和结束日期都设置为当前日期
+    const today = fmt(now)
+    return { date_from: today, date_to: today }
   })(),
   // 新增：TOP3状态初始化
   top3Loading: false,

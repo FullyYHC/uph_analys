@@ -3,13 +3,13 @@ import { AnalysesListRes, AnalysesDetailRes, UphItem, PatchBody, Top3PushRespons
 
 export const api = axios.create({
   baseURL: '/api',
-  timeout: 10000
+  timeout: 30000 // 增加到30秒
 })
 
 export const analysesApi = {
   list: (params?: Record<string, any>) => api.get<AnalysesListRes>('/analyses', { params }),
   detail: (serial: number) => api.get<AnalysesDetailRes>(`/analyses/${serial}`),
-  sync: (params?: Record<string, any>) => api.post('/analyses/sync', null, { params: { ...(params || {}), async: true }, timeout: 10000 }),
+  sync: (params?: Record<string, any>) => api.post('/analyses/sync', null, { params: { ...(params || {}), async: true }, timeout: 60000 }), // 增加到60秒
   syncStatus: () => api.get('/analyses/sync/status'),
   maxDates: () => api.get('/analyses/max-dates')
   ,bucket: (serial: number, slot: string, source?: 'cs'|'sz') => api.get(`/analyses/${serial}/bucket`, { params: { slot, source } })
